@@ -795,7 +795,7 @@ __webpack_require__.r(__webpack_exports__);
 const environment = {
   production: false,
   firebaseProject: "ScottDev" || 0,
-  classCode: "pilot"
+  classCode: ({"NODE_ENV":"development","NX_FIREBASE_PROJECT":"ScottDev","NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/sts125/projects/monorepo","NX_TERMINAL_OUTPUT_PATH":"/Users/sts125/projects/monorepo/node_modules/.cache/nx/terminalOutputs/42a6443c91e0656320c1b27b75a658d4641e968c2f8ab091df49c06a9b14954d","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"pilot","NX_TASK_HASH":"42a6443c91e0656320c1b27b75a658d4641e968c2f8ab091df49c06a9b14954d"}).NX_CLASS_CODE || "pilot"
 };
 
 /***/ }),
@@ -1108,7 +1108,7 @@ var itemByLabel; // sts 1/23/22 - added as global
 let checklistHierarchy;
 let training; // analysisFields to include in output
 
-let analysisFields = ["numericalID", "actionDescription", "id", "type", "label", "labelID", "answerDetails", "vital", "vitalType", "value", "subPhase", "finding", "intvStatus", "vitalsStage", "vitalsStageCoverage", "probLabel", "feedback", "phFeedback", "phaseOrderStatus", "lateRelativeTo", "why", "orderingFB", "vitalsFB", "minVitalsFB", "incorrectAnswersFB", "intvStatusFB", "redundantToFB", "minimalWhy", "timestamp", "status", "displayColor", "comment"];
+let analysisFields = ["numericalID", "actionDescription", "id", "type", "label", "labelID", "answerDetails", "variantDetails", "intvVariant", "vital", "vitalType", "value", "subPhase", "finding", "intvStatus", "vitalsStage", "vitalsStageCoverage", "probLabel", "feedback", "phFeedback", "phaseOrderStatus", "lateRelativeTo", "why", "orderingFB", "vitalsFB", "minVitalsFB", "incorrectAnswersFB", "intvStatusFB", "redundantToFB", "minimalWhy", "timestamp", "status", "displayColor", "comment"];
 
 function initGlobals(scen) {
   problemStates = (0,_debriefingUtils__WEBPACK_IMPORTED_MODULE_1__.getStatesForStatus)("Problem", _meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_7__.fbTemplatesDef);
@@ -1282,6 +1282,7 @@ const processRawLogForDisplay = events => {
       "why": "",
       "answerCorrect": "false",
       "answerDetails": {},
+      "variantDetails": {},
       "expertPhase": "",
       //filled in only for interventions
       "workingPhase": "",
@@ -1309,8 +1310,7 @@ const processRawLogForDisplay = events => {
     } // copy over the event fields that exist in the input log from observer UI (which is type dependent)
 
 
-    const EVENT_FIELDS = ["id", "interventionID", //"intvVariant",  //ignoring intvVariant for now until questions resolved 8/10/22
-    "label", "finding", "phase", "subPhase", "vitalType", "vital", "value", "type", "prompt", "promptID", "intervention", "timestamp", "probLabel"];
+    const EVENT_FIELDS = ["id", "interventionID", "intvVariant", "label", "finding", "phase", "subPhase", "vitalType", "vital", "value", "type", "prompt", "promptID", "intervention", "timestamp", "probLabel"];
     EVENT_FIELDS.forEach(fldName => {
       if (!!event[fldName]) {
         eventObj[fldName] = event[fldName];
@@ -1401,6 +1401,7 @@ const annotateInputEvents = (events, problems) => {
       "why": "",
       "answerCorrect": "false",
       "answerDetails": {},
+      "variantDetails": {},
       "expertPhase": "",
       //filled in only for interventions
       "workingPhase": "",
@@ -1428,8 +1429,7 @@ const annotateInputEvents = (events, problems) => {
     } // copy over the event fields that exist in the input log from observer UI (which is type dependent)
 
 
-    const EVENT_FIELDS = ["id", "interventionID", //"intvVariant",  //ignoring intvVariant for now until questions resolved 8/10/22
-    "label", "finding", "phase", "subPhase", "vitalType", "vital", "value", "type", "prompt", "promptID", "intervention", "timestamp", "probLabel"];
+    const EVENT_FIELDS = ["id", "interventionID", "intvVariant", "label", "finding", "phase", "subPhase", "vitalType", "vital", "value", "type", "prompt", "promptID", "intervention", "timestamp", "probLabel"];
     EVENT_FIELDS.forEach(fldName => {
       if (!!event[fldName]) {
         eventObj[fldName] = event[fldName];
@@ -1657,19 +1657,20 @@ const annotateInputEvents = (events, problems) => {
         }); //Do the grading of the event and return an event with
         //added fields with results
 
-        let variant = "{}"; //Commented out the use of variants since don't currently have a way for condition 2 to store information
-        //about variants.  So it won't be used for either condition.
+        let variant = "{}";
 
-        /* if (!!event.intvVariant && typeof (event.intvVariant) === 'string' && event.intvVariant !== "{}") {
-            let origVariant = JSON.parse(event.intvVariant)  //intvVariant2JSON(event.intvVariant)}
-            let key = Object.keys(origVariant)[0]
-            let val = origVariant[key][0]
-        
-            eventObj.variantID = val
-            variant = "{\"" + key + "\":\"" + val + "\"}"
+        if (!!event.intvVariant && event.intvVariant !== "{}") {
+          let origVariant = JSON.parse(event.intvVariant); //convert string to object 
+
+          let key = Object.keys(origVariant)[0];
+          let val = origVariant[key];
+          eventObj.variantDetails[key] = {
+            label: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getPromptLabel)(key),
+            givenVariant: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getAnswerLabel)(val)
+          }; //variant = "{\"" + key + "\":\"" + val + "\"}"  //not yet using the variant info during analysis
         }
-        else { variant = "{}" }   //intvVariant2JSON({})}  */
 
+        eventObj.variant = variant;
         let prescribedAnswers = (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getPrescribedInvAnswers)(event.interventionID, variant);
         eventObj = (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.processInterventionAnswers)(event, eventObj, prescribedAnswers, "incorrect-answers"); //anything with leftover status of intervention means it wasn't part of the solution
 
@@ -1702,15 +1703,7 @@ const annotateInputEvents = (events, problems) => {
 
 
       if (eventObj.type === "intervention") {
-        let variant;
-
-        if (!!eventObj.intvVariant) {
-          variant = eventObj.intvVariant;
-        } else {
-          variant = "{}";
-        }
-
-        confirmedEvents.push(eventObj.id + "+" + variant);
+        confirmedEvents.push(eventObj.id + "+" + eventObj.variant);
         interventionsConfirmed.push(eventObj.id);
       } else {
         confirmedEvents.push(eventObj.id);
@@ -2054,15 +2047,25 @@ function findBestSolMatch(prob, confirmedEvents) {
   solutions.forEach((sol, j) => {
     let solVal;
     sol.found = [];
-    sol.notFound = []; //let variant   //commenting out until variant questions resolved 8/10/22
-
-    let variant = "{}";
+    sol.notFound = [];
+    let variant;
     sol.actions.forEach((action, f) => {
-      //commenting out until variant questions resolved 8/10/22
+      variant = (0,_meddbriefer_scenario_data__WEBPACK_IMPORTED_MODULE_0__.intvVariant2JSON)(action.interventionVariant); //convert object to string
 
-      /* if (!!action.interventionVariant){  
-          variant = intvVariant2JSON(action.interventionVariant)}
-      else {variant = "{}"} */
+      if (variant !== "{}") {
+        let key = Object.keys(action.interventionVariant)[0];
+        let val = action.interventionVariant[key];
+        action.variantDetails = {};
+        action.variantDetails[key] = {
+          label: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getPromptLabel)(key),
+          givenVariant: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getAnswerLabel)(val)
+        };
+      } //not yet using variant info during analysis
+
+
+      variant = "{}";
+      action.intvVariant = variant;
+
       if (confirmedEvents.includes(action.id + "+" + variant)) {
         sol.found.push(action.id);
       } else {
@@ -2107,15 +2110,25 @@ function findBestSolMatch(prob, confirmedEvents) {
   fSol.ordering = [...fSol.actionsInSuggestedOrder];
 
   if (fSol.altActions.length !== 0) {
-    //let variant  //commenting out until variant questions resolved 8/10/22
-    let variant = "{}";
+    let variant;
 
     for (let action of fSol.altActions) {
-      //commenting out until variant questions resolved 8/10/22
+      variant = (0,_meddbriefer_scenario_data__WEBPACK_IMPORTED_MODULE_0__.intvVariant2JSON)(action.interventionVariant); //convert object to string
 
-      /* if (!!action.interventionVariant){
-          variant = intvVariant2JSON(action.interventionVariant)}
-      else {variant = "{}"} */
+      if (variant !== "{}") {
+        let key = Object.keys(action.interventionVariant)[0];
+        let val = action.interventionVariant[key];
+        action.variantDetails = {};
+        action.variantDetails[key] = {
+          label: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getPromptLabel)(key),
+          givenVariant: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getAnswerLabel)(val)
+        };
+      } //not yet using variant info during analysis
+
+
+      variant = "{}";
+      action.intvVariant = variant;
+
       if (confirmedEvents.includes(action.id + "+" + variant)) {
         foundOneAltAction = true;
         break;
@@ -2149,12 +2162,21 @@ const insertMissingInterventions = (problems, confirmedEvents, indexCounter, pha
     let actions = sol.notFound;
     let variant;
     actions.forEach((action, k) => {
-      //commenting out until variant questions resolved 8/10/22
-      variant = "{}";
-      /* if (!!action.interventionVariant){
-          variant = intvVariant2JSON(action.interventionVariant)}
-      else {variant = "{}"} */
+      variant = (0,_meddbriefer_scenario_data__WEBPACK_IMPORTED_MODULE_0__.intvVariant2JSON)(action.interventionVariant); //convert object to string
 
+      if (variant !== "{}") {
+        let key = Object.keys(action.interventionVariant)[0];
+        let val = action.interventionVariant[key];
+        action.variantDetails = {};
+        action.variantDetails[key] = {
+          label: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getPromptLabel)(key),
+          givenVariant: (0,_meddebriefer_prompt_answer_grading__WEBPACK_IMPORTED_MODULE_8__.getAnswerLabel)(val)
+        };
+      } //not yet using variant info during analysis  
+
+
+      variant = "{}";
+      action.intvVariant = variant;
       confirmedEvents.push(action.id);
       confirmedEvents.push(action.id + "+" + variant);
       let phaseObject = {
@@ -2183,6 +2205,7 @@ const insertMissingInterventions = (problems, confirmedEvents, indexCounter, pha
           phaseObject[fldName] = action[fldName];
         }
       });
+      phaseObject["intvVariant"] = action["interventionVariant"];
 
       if (phaseObject["protocolRelationship"] === "alternative") {
         phaseObject["protocolRelationship"] = "required";
@@ -2397,6 +2420,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6612);
 /* harmony import */ var _actionInsertion__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(20084);
+/* harmony import */ var _meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(72536);
+
 
  //start support functions for constraint checking
 
@@ -2444,22 +2469,6 @@ const findObjByNumerialID = (numericalID, phases, phaseNames, checklistHierarchy
   }
 };
 
-const storeMisOrderedArgs = (numericalID, lateArg, phases, phaseNames, checklistHierarchy) => {
-  let result = findObjByNumerialID(numericalID, phases, phaseNames, checklistHierarchy);
-  let objToModify = result[0];
-
-  if (!objToModify) {
-    console.log("no object found for numericalID = ", numericalID);
-  } //just for debugging
-  else {
-    if (!objToModify.lateRelativeTo) {
-      objToModify.lateRelativeTo = [lateArg.id];
-    } else {
-      objToModify.lateRelativeTo = objToModify.lateRelativeTo.concat([lateArg.id]);
-    }
-  }
-};
-
 const storeMisOrderedFB = (numericalID, lateArg, otherArg, FB, constraintType, phases, phaseNames, checklistHierarchy, phaseFB) => {
   let result = findObjByNumerialID(numericalID, phases, phaseNames, checklistHierarchy);
   let objToModify = result[0];
@@ -2470,7 +2479,7 @@ const storeMisOrderedFB = (numericalID, lateArg, otherArg, FB, constraintType, p
     } //just for debugging
     else {
       if (objToModify.orderingFB !== "") {
-        objToModify.orderingFB = objToModify.orderingFB + ".\xa0\xa0" + FB;
+        objToModify.orderingFB = objToModify.orderingFB + "\xa0\xa0" + FB;
       } else {
         objToModify.orderingFB = FB;
       }
@@ -2540,7 +2549,7 @@ const collectEntriesToCheckConstraints = (phases, phaseNames, requiredPhaseNames
   return [listOfNames, uniqueListOfNames, listOfEntries];
 };
 
-const saveFailedConstraint = (lateArg, otherArg, constraintID, constraintsViolated) => {
+const saveFailedConstraint = (lateArg, lateNum, otherArg, constraintID, constraintsViolated) => {
   let type;
 
   if (["phase", "sub-phase"].includes(lateArg.type)) {
@@ -2552,6 +2561,7 @@ const saveFailedConstraint = (lateArg, otherArg, constraintID, constraintsViolat
   constraintsViolated.push({
     constraintID: constraintID,
     arg1: lateArg.id,
+    arg1Num: lateNum,
     op: "before",
     arg2: otherArg.id,
     type: type
@@ -2559,192 +2569,178 @@ const saveFailedConstraint = (lateArg, otherArg, constraintID, constraintsViolat
   return type;
 };
 
-const addToListOfFeedback = (parPhFB, last, label, repeating) => {
-  //feedback for nonphase
-  if (repeating) {
-    if (last) {
-      parPhFB = parPhFB + " and ";
-    } else {
-      parPhFB = parPhFB + ", ";
-    }
-  }
-
-  parPhFB = parPhFB + label.toLowerCase();
-  return parPhFB;
-};
-
-const checkAgainst2ndArgs = (arg1st, args2nd, op, direction, constraintID, entryNames, entries, phases, phaseNames, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB) => {
+const checkAgainst2ndArgs = (arg1st, args2nd, op, constraintID, entryNames, entries, itemByID, itemByLabel, constraintsViolated) => {
   let endNum1st = findNameNumID(entryNames, entries, arg1st, "end");
   let startNum1st = findNameNumID(entryNames, entries, arg1st, "start");
-  let label1st = arg1st.label;
-  let phFB = "";
-  let par1PhFB = "";
-  let par2PhFB = "";
-  let repeating;
-  let constraintType;
-  let otherLabel;
+
+  if (!["phase", "sub-phase"].includes(arg1st.type) && startNum1st !== endNum1st) {
+    //means have duplicate entries for a single item
+    //so use the earliest entry only to test before
+    endNum1st = startNum1st;
+  }
 
   if (args2nd.length > 0) {
-    let counter = 0;
-    let violations = 0;
-
     for (let arg of args2nd) {
-      let last = false;
       let arg2nd = (0,_debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getItem)(arg, itemByID, itemByLabel);
 
       if (!!arg2nd) {
-        counter++;
+        let startNum2nd = findNameNumID(entryNames, entries, arg2nd, "start");
 
-        if (counter === args2nd.length) {
-          last = true;
+        if (!!endNum1st && !!startNum2nd) {
+          if (!(endNum1st < startNum2nd)) {
+            //if failed constraint i.e. arg1 is late
+            saveFailedConstraint(arg1st, startNum1st, arg2nd, constraintID, constraintsViolated);
+          } else {
+            if (op === "or") {
+              return;
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
+const generateConstraintFB = (constraints, itemByID, itemByLabel, phases, phaseNames, checklistHierarchy, phaseFB) => {
+  for (const [, entry] of Object.entries(constraints)) {
+    let FB = "";
+    let orig1stLabel = "";
+    const {
+      arg1: arg1st,
+      arg1Num,
+      type: cType,
+      arg2: args2
+    } = entry;
+    let arg1stItem = (0,_debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getItem)(arg1st, itemByID, itemByLabel);
+    let label1st;
+
+    if (!!arg1stItem) {
+      orig1stLabel = arg1stItem.label;
+      label1st = arg1stItem.label;
+    } else {
+      label1st = arg1st;
+    }
+
+    label1st = label1st[0].toLowerCase() + label1st.substring(1);
+
+    if (cType === "phase") {
+      FB = "You should have completed the " + label1st;
+    } else {
+      FB = "You should have " + label1st;
+    } //turn arg2s into labels
+
+
+    let part2 = "";
+    let arg2Labels = "";
+
+    for (let i = 0; i < args2.length; i++) {
+      let argItem = (0,_debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getItem)(args2[i], itemByID, itemByLabel);
+      let label2nd;
+
+      if (!!argItem) {
+        label2nd = argItem.label;
+      } else {
+        label2nd = args2[i];
+      }
+
+      label2nd = label2nd[0].toLowerCase() + label2nd.substring(1);
+
+      if (args2.length > 1) {
+        if (i === 0) {
+          //first item in list
+          part2 = " before you started " + label2nd;
+          arg2Labels = label2nd;
         }
 
-        let label2nd = arg2nd["label"];
-        let startNum2nd = findNameNumID(entryNames, entries, arg2nd, "start");
-        let endNum2nd = findNameNumID(entryNames, entries, arg2nd, "end");
+        if (i + 1 === args2.length) {
+          //last item in list
+          part2 = part2 + ", and " + label2nd;
+          arg2Labels = arg2Labels + " and " + label2nd;
+        }
+      } else {
+        //only item in the list
+        part2 = " before you did " + label2nd;
+        arg2Labels = label2nd;
+      }
+    }
 
-        switch (direction) {
-          case "before":
-            if (!!endNum1st && !!startNum2nd) {
-              if (!(endNum1st < startNum2nd)) {
-                //if failed constraint i.e. arg1 is late
-                //result = collectFB (constraintID, counter, arg1st, arg2nd, startNum1st, startNum2nd, endNum1st, endNum2nd, label1st, label2nd, last, constraintType, phases, phaseNames)
-                //feedback for item
-                violations++;
+    FB = FB + part2 + ".";
+    storeMisOrderedFB(arg1Num, orig1stLabel, arg2Labels, FB, cType, phases, phaseNames, checklistHierarchy, phaseFB);
+  }
+};
 
-                if (par1PhFB === "") {
-                  if (startNum1st === endNum1st && !["phase", "sub-phase"].includes(arg1st.type)) {
-                    par1PhFB = "You should have ";
-                    par1PhFB = addToListOfFeedback(par1PhFB, last, label1st, false);
-                  } //feedback for phase
-                  else {
-                    par1PhFB = "You should have completed the ";
-                    par1PhFB = addToListOfFeedback(par1PhFB, last, label1st, false);
-                  }
-                }
+const findAggregateLabel = item => {
+  for (const [label, arr] of Object.entries(_meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_2__.aggregateLabels)) {
+    if (arr.includes(item)) {
+      return label;
+    }
+  }
 
-                if (startNum2nd === endNum2nd && !["phase", "sub-phase"].includes(arg2nd.type)) {
-                  if (par2PhFB === "") {
-                    par2PhFB = par2PhFB + " before you did ";
-                  } //feedback for item
+  return undefined;
+};
+
+const aggregateArguments = constraintsViolated => {
+  //first collect together all the args that late items/phases are late with respect to, in order
+  //to aggregate when possible the list of items in the feedback
+  let lateArgEntries = {};
+
+  for (const [, instance] of Object.entries(constraintsViolated)) {
+    const {
+      arg1: lateArg,
+      arg1Num: lateNum,
+      type,
+      arg2
+    } = instance;
+    let key = lateArg + "-" + type;
+    let currentObj = lateArgEntries[key];
+
+    if (!!currentObj) {
+      currentObj.arg2 = currentObj.arg2.concat(arg2);
+    } else {
+      currentObj = {
+        arg1: lateArg,
+        arg1Num: lateNum,
+        arg2: [arg2],
+        type: type
+      };
+    }
+
+    lateArgEntries[key] = currentObj;
+  } //now replace the arg2s that can be replaced by an aggregate label
 
 
-                  if (violations > 1) {
-                    repeating = true;
-                  } else {
-                    repeating = false;
-                  }
+  for (const [lateArg, entry] of Object.entries(lateArgEntries)) {
+    let arg2s = entry.arg2;
+    let newArgs = JSON.parse(JSON.stringify(arg2s)); //make a deep copy
 
-                  par2PhFB = addToListOfFeedback(par2PhFB, last, label2nd, repeating);
-                } else {
-                  if (par2PhFB === "") {
-                    par2PhFB = par2PhFB + " before starting the ";
-                  } //feedback for phase
+    for (var i = 0; i < arg2s.length; i++) {
+      let aggregateLabel = findAggregateLabel(arg2s[i]);
+      let index = newArgs.findIndex(e => e === arg2s[i]);
 
+      if (!!aggregateLabel) {
+        newArgs.splice(index, 1); //remove the item
 
-                  if (violations > 1) {
-                    repeating = true;
-                  } else {
-                    repeating = false;
-                  }
-
-                  par2PhFB = addToListOfFeedback(par2PhFB, last, label2nd, repeating);
-                }
-
-                storeMisOrderedArgs(startNum1st, arg2nd, phases, phaseNames, checklistHierarchy);
-                constraintType = saveFailedConstraint(arg1st, arg2nd, constraintID, constraintsViolated);
-                otherLabel = arg2nd.label;
-              } else {
-                if (op === "or") {
-                  return;
-                }
-              }
-            }
-
-            break;
-
-          case "after":
-            //for after just reverse 1st and 2nd args
-            if (!!startNum1st && !!endNum2nd) {
-              if (!(startNum1st > endNum2nd)) {
-                //if failed constraint  i.e. arg2 is late
-                violations++;
-
-                if (startNum1st === endNum1st && !["phase", "sub-phase"].includes(arg1st.type)) {
-                  //feedback for item
-                  if (par1PhFB === "") {
-                    par1PhFB = "You should have ";
-                  }
-
-                  if (violations > 1) {
-                    repeating = true;
-                  } else {
-                    repeating = false;
-                  }
-
-                  par1PhFB = addToListOfFeedback(par1PhFB, last, label2nd, repeating);
-                } //feedback for phase
-                else {
-                  if (par1PhFB === "") {
-                    par1PhFB = "You should have completed the ";
-                  }
-
-                  if (violations > 1) {
-                    repeating = true;
-                  } else {
-                    repeating = false;
-                  }
-
-                  par1PhFB = addToListOfFeedback(par1PhFB, last, label2nd, repeating);
-                }
-
-                if (par2PhFB === "") {
-                  if (startNum2nd === endNum2nd && !["phase", "sub-phase"].includes(arg2nd.type)) {
-                    par2PhFB = par2PhFB + " before you did "; //feedback for nonphase
-
-                    par2PhFB = addToListOfFeedback(par2PhFB, last, label1st, false);
-                  } else {
-                    par2PhFB = par2PhFB + " before starting the "; //feedback for phase
-
-                    par2PhFB = addToListOfFeedback(par2PhFB, last, label1st, false);
-                  }
-                }
-
-                storeMisOrderedArgs(startNum2nd, arg1st, phases, phaseNames, checklistHierarchy); //feedback for phase
-
-                constraintType = saveFailedConstraint(arg2nd, arg1st, constraintID, constraintsViolated);
-                otherLabel = arg1st.label;
-              } else {
-                if (op === "or") {
-                  return;
-                }
-              }
-            }
-
-            break;
-
-          default:
-            break;
+        if (!newArgs.includes(aggregateLabel)) {
+          newArgs = newArgs.concat(aggregateLabel);
         }
       }
     }
 
-    phFB = par1PhFB + par2PhFB;
-
-    if (phFB !== "") {
-      phFB = phFB + ".";
-      storeMisOrderedFB(startNum1st, label1st, otherLabel, phFB, constraintType, phases, phaseNames, checklistHierarchy, phaseFB);
-    }
+    entry.arg2 = newArgs;
+    lateArgEntries[lateArg] = entry;
   }
+
+  return lateArgEntries;
 };
 
-const checkConstraintsForArg = (arg1st, constraint, phases, phaseNames, entryNames, entries, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB) => {
-  let args2nd = constraint.before;
-  let op = constraint.beforeOp;
-  checkAgainst2ndArgs(arg1st, args2nd, op, "before", constraint.id, entryNames, entries, phases, phaseNames, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB);
-  args2nd = constraint.after;
-  op = constraint.afterOp;
-  checkAgainst2ndArgs(arg1st, args2nd, op, "after", constraint.id, entryNames, entries, phases, phaseNames, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB);
+const checkConstraintsForArg = (arg1st, constraint, entryNames, entries, itemByID, itemByLabel, constraintsViolated) => {
+  let op;
+  let args2nd = constraint.before.filter(l => entryNames.includes(l));
+
+  if (args2nd.length > 0) {
+    op = constraint.beforeOp;
+    checkAgainst2ndArgs(arg1st, args2nd, op, constraint.id, entryNames, entries, itemByID, itemByLabel, constraintsViolated);
+  }
 }; //end support functions for constraint checking
 //To DO Future: filter constraints in/out based on findings available for this scenario
 //main function for constraint checking
@@ -2759,18 +2755,20 @@ const checkAgainstKB = (phases, phaseNames, requiredPhaseNames, requiredSubphase
     let firstArgItem = (0,_debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getItem)(firstArg, itemByID, itemByLabel);
 
     if (!!firstArgItem) {
-      processFirstArg(firstArgItem, phases, phaseNames, entryNames, entries, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB);
+      processFirstArg(firstArgItem, entryNames, entries, itemByID, itemByLabel, constraintsViolated);
     }
-  }); //only expect to change objects in phases
+  });
+  let aggregatedConstraints = aggregateArguments(constraintsViolated);
+  generateConstraintFB(aggregatedConstraints, itemByID, itemByLabel, phases, phaseNames, checklistHierarchy, phaseFB); //only expect to change objects in phases
 
   return [phases, phaseNames];
 };
 
-const processFirstArg = (firstArgItem, phases, phaseNames, entryNames, entries, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB) => {
+const processFirstArg = (firstArgItem, entryNames, entries, itemByID, itemByLabel, constraintsViolated) => {
   let constraint = (0,_debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getConstraint)(firstArgItem); //will find only one constraint per 1st arg
 
   if (!!constraint) {
-    checkConstraintsForArg(firstArgItem, constraint, phases, phaseNames, entryNames, entries, checklistHierarchy, itemByID, itemByLabel, constraintsViolated, phaseFB);
+    checkConstraintsForArg(firstArgItem, constraint, entryNames, entries, itemByID, itemByLabel, constraintsViolated);
   }
 };
 
@@ -3047,8 +3045,8 @@ function getFBField(currentEntry, field, c2FB) {
   let combinedResult = "";
   let indexLabel;
 
-  if (currentEntry.variantID) {
-    indexLabel = currentEntry.id + "-" + currentEntry.variantID;
+  if (currentEntry.variant) {
+    indexLabel = currentEntry.id; //+ "-" + currentEntry.variant  //condition 2 fb has no variants
   } else {
     indexLabel = currentEntry.id;
   }
@@ -3142,8 +3140,8 @@ const getPhaseFeedback = (entry, phaseFBGiven, c2FB) => {
     if (!phaseFBGiven[entry.labelID]) {
       phaseFBGiven[entry.labelID] = true;
 
-      if (entry.variantID) {
-        indexLabel = entry.labelID + "-" + variantID;
+      if (entry.variant) {
+        indexLabel = entry.labelID; //+ "-" + variant  //commented out cause condition 2 feedback doesn't have variants
       } else {
         indexLabel = entry.labelID;
       }
@@ -3352,20 +3350,46 @@ const filterConstraintsBySolutions = expectedScenInterventions => {
 }; //built by the function initializeConstraints
 
 var initialConstraints = {};
-var scenarioConstraints = {}; // adds on scenario specific constraints where the constraint is only applicable if certain patient
+var scenarioConstraints = {};
+var AFTER_FIELDS = ["id", "before", "beforeOp", "type"]; // adds on scenario specific constraints where the constraint is only applicable if certain patient
 // conditions hold.  Since assessment callouts are text and have no associated representation, we
 // can yet implement true conditional constraints.
 
 const initializeConstraints = scenarioName => {
-  // look up applicable conditional constraints from const structure scenarioConstraintIDs
+  initialConstraints = Object.assign(JSON.parse(JSON.stringify(_meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_0__.globalConstraints))); // look up applicable conditional constraints from const structure scenarioConstraintIDs
+
   let constraintIDs = _meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_0__.scenarioConstraintIDs[scenarioName];
-  initialConstraints = JSON.parse(JSON.stringify(_meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_0__.globalConstraints));
 
   if (!!constraintIDs && constraintIDs.length !== 0) {
     for (const [key, val] of Object.entries(_meddbriefer_feedback_data__WEBPACK_IMPORTED_MODULE_0__.conditionalConstraints)) {
       if (constraintIDs.includes(val.id)) {
         initialConstraints[key] = val;
       }
+    }
+  } //rewrite the afters as before constraints
+
+
+  for (const [arg1st, constraint] of Object.entries(initialConstraints)) {
+    if (constraint.after.length !== 0) {
+      let afters = constraint.after;
+      constraint.after = [];
+      initialConstraints[arg1st] = constraint;
+      afters.forEach(arg => {
+        let argConstraint = {};
+
+        if (initialConstraints[arg]) {
+          argConstraint = initialConstraints[arg];
+        } else {
+          AFTER_FIELDS.forEach(fldName => {
+            if (!!constraint[fldName]) {
+              argConstraint[fldName] = constraint[fldName];
+            }
+          });
+        }
+
+        argConstraint.before = argConstraint.before.concat([arg1st]);
+        initialConstraints[arg] = argConstraint;
+      });
     }
   }
 }; //gets one constraint since each id/label would be a key
@@ -3854,8 +3878,9 @@ function checkForMinimalCases(actions, formattedActions, problems) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "analyzeEvents": () => (/* reexport safe */ _analyzeEvents__WEBPACK_IMPORTED_MODULE_1__.analyzeEvents),
+/* harmony export */   "analyzeEvents": () => (/* reexport safe */ _analyzeEvents__WEBPACK_IMPORTED_MODULE_2__.analyzeEvents),
 /* harmony export */   "applyFBTemplate": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.applyFBTemplate),
+/* harmony export */   "doVitalsCounts": () => (/* reexport safe */ _inferencing__WEBPACK_IMPORTED_MODULE_1__.doVitalsCounts),
 /* harmony export */   "getAssessmentIcon": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getAssessmentIcon),
 /* harmony export */   "getColor": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getColor),
 /* harmony export */   "getFeedback": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.getFeedback),
@@ -3864,11 +3889,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "saveAnalysisLog": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.saveAnalysisLog),
 /* harmony export */   "saveCommentLog": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.saveCommentLog),
 /* harmony export */   "saveLog": () => (/* reexport safe */ _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__.saveLog),
-/* harmony export */   "summarizeAnalysis": () => (/* reexport safe */ _summarizeAnalysis__WEBPACK_IMPORTED_MODULE_2__.summarizeAnalysis)
+/* harmony export */   "summarizeAnalysis": () => (/* reexport safe */ _summarizeAnalysis__WEBPACK_IMPORTED_MODULE_3__.summarizeAnalysis)
 /* harmony export */ });
 /* harmony import */ var _debriefingUtils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6612);
-/* harmony import */ var _analyzeEvents__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(69265);
-/* harmony import */ var _summarizeAnalysis__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(70742);
+/* harmony import */ var _inferencing__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(81828);
+/* harmony import */ var _analyzeEvents__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(69265);
+/* harmony import */ var _summarizeAnalysis__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(70742);
+
 
  //export { doVitalsCounts } from "./vitalsChecking";
 
@@ -4754,6 +4781,68 @@ function DisplayContent({
     setShowCommentColumn(!showCommentColumn);
   };
 
+  const formatVariantGiven = entry => {
+    let variants = [];
+    let variant = [];
+
+    for (const [prompt, value] of Object.entries(entry.variantDetails)) {
+      let variantString = String(value.givenVariant);
+      variant = variantString.split(":");
+
+      if (variant.length === 2) {
+        variants.push({
+          ID: variant[0],
+          variant: variant[1]
+        });
+      } else {
+        variants.push({
+          ID: promptIDs[prompt],
+          variant: value.givenVariant
+        });
+      }
+    }
+
+    return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
+      children: variants.map((entry, index) => {
+        if (entry.ID) {
+          return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+              children: [entry.ID, ":"]
+            }, void 0, true, {
+              fileName: _jsxFileName,
+              lineNumber: 73,
+              columnNumber: 25
+            }, this), " ", entry.variant, /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("br", {}, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 74,
+              columnNumber: 25
+            }, this)]
+          }, index, true, {
+            fileName: _jsxFileName,
+            lineNumber: 72,
+            columnNumber: 28
+          }, this);
+        } else {
+          return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+            children: [entry.variant, /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("br", {}, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 79,
+              columnNumber: 25
+            }, this)]
+          }, index, true, {
+            fileName: _jsxFileName,
+            lineNumber: 77,
+            columnNumber: 28
+          }, this);
+        }
+      })
+    }, void 0, false, {
+      fileName: _jsxFileName,
+      lineNumber: 69,
+      columnNumber: 13
+    }, this);
+  };
+
   const formatAnswerGiven = entry => {
     let answers = [];
     let answer = [];
@@ -4783,43 +4872,43 @@ function DisplayContent({
               children: [entry.ID, ":"]
             }, void 0, true, {
               fileName: _jsxFileName,
-              lineNumber: 73,
+              lineNumber: 105,
               columnNumber: 25
             }, this), " ", entry.answer, /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("br", {}, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 74,
+              lineNumber: 106,
               columnNumber: 25
             }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("br", {}, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 75,
+              lineNumber: 107,
               columnNumber: 25
             }, this)]
           }, index, true, {
             fileName: _jsxFileName,
-            lineNumber: 72,
+            lineNumber: 104,
             columnNumber: 28
           }, this);
         } else {
           return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
             children: [entry.answer, /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("br", {}, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 80,
+              lineNumber: 112,
               columnNumber: 25
             }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("br", {}, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 81,
+              lineNumber: 113,
               columnNumber: 25
             }, this)]
           }, index, true, {
             fileName: _jsxFileName,
-            lineNumber: 78,
+            lineNumber: 110,
             columnNumber: 28
           }, this);
         }
       })
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 69,
+      lineNumber: 101,
       columnNumber: 13
     }, this);
   };
@@ -4835,7 +4924,7 @@ function DisplayContent({
             children: "alarm "
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 94,
+            lineNumber: 126,
             columnNumber: 15
           }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("font", {
             size: "+1",
@@ -4843,17 +4932,17 @@ function DisplayContent({
               children: label
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 95,
+              lineNumber: 127,
               columnNumber: 31
             }, this)
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 95,
+            lineNumber: 127,
             columnNumber: 15
           }, this)]
         }, void 0, true, {
           fileName: _jsxFileName,
-          lineNumber: 93,
+          lineNumber: 125,
           columnNumber: 13
         }, this), !feedback && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
           colSpan: "3",
@@ -4863,17 +4952,17 @@ function DisplayContent({
               children: label
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 98,
+              lineNumber: 130,
               columnNumber: 33
             }, this)
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 98,
+            lineNumber: 130,
             columnNumber: 17
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 97,
+          lineNumber: 129,
           columnNumber: 13
         }, this)]
       }, void 0, true);
@@ -4887,18 +4976,18 @@ function DisplayContent({
             children: "alarm"
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 106,
+            lineNumber: 138,
             columnNumber: 17
           }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
             children: label
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 107,
+            lineNumber: 139,
             columnNumber: 17
           }, this)]
         }, void 0, true, {
           fileName: _jsxFileName,
-          lineNumber: 105,
+          lineNumber: 137,
           columnNumber: 13
         }, this), !feedback && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
           colSpan: "3",
@@ -4906,12 +4995,12 @@ function DisplayContent({
             children: label
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 111,
+            lineNumber: 143,
             columnNumber: 17
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 110,
+          lineNumber: 142,
           columnNumber: 13
         }, this)]
       }, void 0, true);
@@ -4951,7 +5040,7 @@ function DisplayContent({
           value: phaseFB
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 144,
+          lineNumber: 176,
           columnNumber: 34
         }, this), training && showCommentColumn && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
           children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("textarea", {
@@ -4962,12 +5051,12 @@ function DisplayContent({
             id: `${entry.id}`
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 147,
+            lineNumber: 179,
             columnNumber: 25
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 146,
+          lineNumber: 178,
           columnNumber: 21
         }, this)]
       }, void 0, true);
@@ -4977,7 +5066,7 @@ function DisplayContent({
         className: "black"
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 160,
+        lineNumber: 192,
         columnNumber: 17
       }, this);
     }
@@ -4991,7 +5080,7 @@ function DisplayContent({
 
   function getLabel(entry) {
     return entry.type === "obtain-vital-sign" ? vitalLabel(entry) : /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
-      children: [entry.actionDescription, ".  ", answerData(entry), findingsData(entry)]
+      children: [entry.actionDescription, ".  ", variantData(entry), answerData(entry), findingsData(entry)]
     }, void 0, true);
   }
 
@@ -5009,7 +5098,7 @@ function DisplayContent({
           children: "Requested vital:"
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 192,
+          lineNumber: 224,
           columnNumber: 21
         }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
           className: "text-muted",
@@ -5018,23 +5107,23 @@ function DisplayContent({
               children: "Found:"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 193,
+              lineNumber: 225,
               columnNumber: 53
             }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
               children: entry.value
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 193,
+              lineNumber: 225,
               columnNumber: 72
             }, this)]
           }, void 0, true, {
             fileName: _jsxFileName,
-            lineNumber: 193,
+            lineNumber: 225,
             columnNumber: 50
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 193,
+          lineNumber: 225,
           columnNumber: 21
         }, this)]
       }, void 0, true);
@@ -5046,7 +5135,7 @@ function DisplayContent({
           children: "Requested assessment:"
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 200,
+          lineNumber: 232,
           columnNumber: 21
         }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
           className: "text-muted",
@@ -5055,23 +5144,23 @@ function DisplayContent({
               children: "Found:"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 201,
+              lineNumber: 233,
               columnNumber: 53
             }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
               children: entry.value
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 201,
+              lineNumber: 233,
               columnNumber: 72
             }, this)]
           }, void 0, true, {
             fileName: _jsxFileName,
-            lineNumber: 201,
+            lineNumber: 233,
             columnNumber: 50
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 201,
+          lineNumber: 233,
           columnNumber: 21
         }, this)]
       }, void 0, true);
@@ -5083,154 +5172,6 @@ function DisplayContent({
       return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
         children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
           children: "Requested circulation's:"
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 210,
-          columnNumber: 21
-        }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
-          className: "text-muted",
-          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-              children: "Found:"
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 211,
-              columnNumber: 53
-            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
-              children: entry.value
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 211,
-              columnNumber: 72
-            }, this)]
-          }, void 0, true, {
-            fileName: _jsxFileName,
-            lineNumber: 211,
-            columnNumber: 50
-          }, this)
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 211,
-          columnNumber: 21
-        }, this)]
-      }, void 0, true);
-    }
-
-    if (["airway", "breathing", "circulation"].includes(entry.vitalType)) {
-      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
-        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-          children: ["Requested ", entry.vitalType, "'s:"]
-        }, void 0, true, {
-          fileName: _jsxFileName,
-          lineNumber: 218,
-          columnNumber: 21
-        }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
-          className: "text-muted",
-          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-              children: "Found:"
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 219,
-              columnNumber: 53
-            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
-              children: entry.value
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 219,
-              columnNumber: 72
-            }, this)]
-          }, void 0, true, {
-            fileName: _jsxFileName,
-            lineNumber: 219,
-            columnNumber: 50
-          }, this)
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 219,
-          columnNumber: 21
-        }, this)]
-      }, void 0, true);
-    }
-
-    if (entry.vitalType === "intervention-status") {
-      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
-        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-          children: "Requested status for:"
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 226,
-          columnNumber: 21
-        }, this), " ", getIntvLabel(entry), ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
-          className: "text-muted",
-          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-              children: "Found:"
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 227,
-              columnNumber: 53
-            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
-              children: entry.value
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 227,
-              columnNumber: 72
-            }, this)]
-          }, void 0, true, {
-            fileName: _jsxFileName,
-            lineNumber: 227,
-            columnNumber: 50
-          }, this)
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 227,
-          columnNumber: 21
-        }, this)]
-      }, void 0, true);
-    }
-
-    if (entry.vitalType === "sample") {
-      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
-        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-          children: "Requested SAMPLE:"
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 234,
-          columnNumber: 21
-        }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
-          className: "text-muted",
-          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-              children: "Found:"
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 235,
-              columnNumber: 53
-            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
-              children: entry.value
-            }, void 0, false, {
-              fileName: _jsxFileName,
-              lineNumber: 235,
-              columnNumber: 72
-            }, this)]
-          }, void 0, true, {
-            fileName: _jsxFileName,
-            lineNumber: 235,
-            columnNumber: 50
-          }, this)
-        }, void 0, false, {
-          fileName: _jsxFileName,
-          lineNumber: 235,
-          columnNumber: 21
-        }, this)]
-      }, void 0, true);
-    }
-
-    if (entry.vitalType === "opqrst") {
-      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
-        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
-          children: "Requested OPQRST:"
         }, void 0, false, {
           fileName: _jsxFileName,
           lineNumber: 242,
@@ -5263,6 +5204,154 @@ function DisplayContent({
         }, this)]
       }, void 0, true);
     }
+
+    if (["airway", "breathing", "circulation"].includes(entry.vitalType)) {
+      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
+        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+          children: ["Requested ", entry.vitalType, "'s:"]
+        }, void 0, true, {
+          fileName: _jsxFileName,
+          lineNumber: 250,
+          columnNumber: 21
+        }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+          className: "text-muted",
+          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+              children: "Found:"
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 251,
+              columnNumber: 53
+            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
+              children: entry.value
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 251,
+              columnNumber: 72
+            }, this)]
+          }, void 0, true, {
+            fileName: _jsxFileName,
+            lineNumber: 251,
+            columnNumber: 50
+          }, this)
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 251,
+          columnNumber: 21
+        }, this)]
+      }, void 0, true);
+    }
+
+    if (entry.vitalType === "intervention-status") {
+      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
+        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+          children: "Requested status for:"
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 258,
+          columnNumber: 21
+        }, this), " ", getIntvLabel(entry), ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+          className: "text-muted",
+          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+              children: "Found:"
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 259,
+              columnNumber: 53
+            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
+              children: entry.value
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 259,
+              columnNumber: 72
+            }, this)]
+          }, void 0, true, {
+            fileName: _jsxFileName,
+            lineNumber: 259,
+            columnNumber: 50
+          }, this)
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 259,
+          columnNumber: 21
+        }, this)]
+      }, void 0, true);
+    }
+
+    if (entry.vitalType === "sample") {
+      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
+        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+          children: "Requested SAMPLE:"
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 266,
+          columnNumber: 21
+        }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+          className: "text-muted",
+          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+              children: "Found:"
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 267,
+              columnNumber: 53
+            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
+              children: entry.value
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 267,
+              columnNumber: 72
+            }, this)]
+          }, void 0, true, {
+            fileName: _jsxFileName,
+            lineNumber: 267,
+            columnNumber: 50
+          }, this)
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 267,
+          columnNumber: 21
+        }, this)]
+      }, void 0, true);
+    }
+
+    if (entry.vitalType === "opqrst") {
+      return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
+        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+          children: "Requested OPQRST:"
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 274,
+          columnNumber: 21
+        }, this), " ", entry.vital, ",", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+          className: "text-muted",
+          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("p", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("b", {
+              children: "Found:"
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 275,
+              columnNumber: 53
+            }, this), "\xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
+              children: entry.value
+            }, void 0, false, {
+              fileName: _jsxFileName,
+              lineNumber: 275,
+              columnNumber: 72
+            }, this)]
+          }, void 0, true, {
+            fileName: _jsxFileName,
+            lineNumber: 275,
+            columnNumber: 50
+          }, this)
+        }, void 0, false, {
+          fileName: _jsxFileName,
+          lineNumber: 275,
+          columnNumber: 21
+        }, this)]
+      }, void 0, true);
+    }
   }
   /* function regularLabel(entry) {
       return  (entry.subPhase && entry.type !== "intervention") || entry.type === "decision-option"
@@ -5284,27 +5373,27 @@ function DisplayContent({
           children: "Found:"
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 265,
+          lineNumber: 297,
           columnNumber: 47
         }, this), " ", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
           children: entry.finding
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 265,
+          lineNumber: 297,
           columnNumber: 61
         }, this)]
       }, void 0, true, {
         fileName: _jsxFileName,
-        lineNumber: 265,
+        lineNumber: 297,
         columnNumber: 44
       }, this)
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 265,
+      lineNumber: 297,
       columnNumber: 15
     }, this) : /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {}, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 266,
+      lineNumber: 298,
       columnNumber: 15
     }, this);
   }
@@ -5315,11 +5404,26 @@ function DisplayContent({
       children: formatAnswerGiven(entry)
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 271,
+      lineNumber: 303,
       columnNumber: 14
     }, this) : /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {}, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 272,
+      lineNumber: 304,
+      columnNumber: 14
+    }, this);
+  }
+
+  function variantData(entry) {
+    return entry.variantDetails ? /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {
+      className: "text-muted",
+      children: formatVariantGiven(entry)
+    }, void 0, false, {
+      fileName: _jsxFileName,
+      lineNumber: 309,
+      columnNumber: 14
+    }, this) : /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("span", {}, void 0, false, {
+      fileName: _jsxFileName,
+      lineNumber: 310,
       columnNumber: 14
     }, this);
   }
@@ -5351,13 +5455,13 @@ function DisplayContent({
         children: entry.numericalID
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 303,
+        lineNumber: 341,
         columnNumber: 17
       }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
         children: (0,_meddbriefer_analysis__WEBPACK_IMPORTED_MODULE_8__.getTimestamp)(entry)
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 304,
+        lineNumber: 342,
         columnNumber: 17
       }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
         className: (0,_meddbriefer_analysis__WEBPACK_IMPORTED_MODULE_8__.getColor)(entry, fbTemplates),
@@ -5366,24 +5470,24 @@ function DisplayContent({
           children: (0,_meddbriefer_analysis__WEBPACK_IMPORTED_MODULE_8__.getAssessmentIcon)(entry, fbTemplates)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 306,
+          lineNumber: 344,
           columnNumber: 21
         }, this), getLabel(entry)]
       }, void 0, true, {
         fileName: _jsxFileName,
-        lineNumber: 305,
+        lineNumber: 343,
         columnNumber: 17
       }, this), training && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
         children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(Feedback, {
           value: feedback
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 309,
+          lineNumber: 347,
           columnNumber: 34
         }, this)
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 309,
+        lineNumber: 347,
         columnNumber: 30
       }, this), training && showCommentColumn && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
         children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("textarea", {
@@ -5394,12 +5498,12 @@ function DisplayContent({
           id: `${entry.id}`
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 313,
+          lineNumber: 351,
           columnNumber: 25
         }, this)
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 312,
+        lineNumber: 350,
         columnNumber: 21
       }, this)]
     }, void 0, true);
@@ -5434,7 +5538,7 @@ function DisplayContent({
       children: next === null ? "Save" : "Done"
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 349,
+      lineNumber: 387,
       columnNumber: 9
     }, this);
   }
@@ -5463,7 +5567,7 @@ function DisplayContent({
       children: "processing"
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 381,
+      lineNumber: 419,
       columnNumber: 17
     }, this);
   }
@@ -5478,19 +5582,19 @@ function DisplayContent({
         children: "Toggle Comments"
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 391,
+        lineNumber: 429,
         columnNumber: 29
       }, this)
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 387,
+      lineNumber: 425,
       columnNumber: 19
     }, this) : /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(_meddbriefer_mdb_ui__WEBPACK_IMPORTED_MODULE_9__.MDBNavBar, {
       title: getNavBarTitle(),
       leftNav: getLeftNavButton()
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 399,
+      lineNumber: 437,
       columnNumber: 19
     }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("form", {
       children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("div", {
@@ -5508,45 +5612,45 @@ function DisplayContent({
                 children: " ID "
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 409,
+                lineNumber: 447,
                 columnNumber: 29
               }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
                 className: "table-header",
                 children: " Timestamp "
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 410,
+                lineNumber: 448,
                 columnNumber: 29
               }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
                 className: "table-header",
                 children: " Action Description "
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 411,
+                lineNumber: 449,
                 columnNumber: 29
               }, this), training && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
                 className: "table-header",
                 children: " Feedback "
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 412,
+                lineNumber: 450,
                 columnNumber: 42
               }, this), training && showCommentColumn && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
                 className: "table-header",
                 children: " Comments "
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 413,
+                lineNumber: 451,
                 columnNumber: 63
               }, this)]
             }, void 0, true, {
               fileName: _jsxFileName,
-              lineNumber: 408,
+              lineNumber: 446,
               columnNumber: 25
             }, this)
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 407,
+            lineNumber: 445,
             columnNumber: 21
           }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tbody", {
             className: "scroll",
@@ -5554,27 +5658,27 @@ function DisplayContent({
               children: currentEntry.type === "header" ? dispHeaderRow(currentEntry, index) : dispDataRow(currentEntry, index)
             }, index, false, {
               fileName: _jsxFileName,
-              lineNumber: 418,
+              lineNumber: 456,
               columnNumber: 29
             }, this))
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 416,
+            lineNumber: 454,
             columnNumber: 21
           }, this)]
         }, void 0, true, {
           fileName: _jsxFileName,
-          lineNumber: 406,
+          lineNumber: 444,
           columnNumber: 17
         }, this)
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 404,
+        lineNumber: 442,
         columnNumber: 19
       }, this)
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 404,
+      lineNumber: 442,
       columnNumber: 13
     }, this)]
   }, void 0, true);
@@ -7113,24 +7217,20 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var core_js_modules_es_array_includes_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_includes_js__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var core_js_modules_es_string_includes_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(31235);
 /* harmony import */ var core_js_modules_es_string_includes_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_string_includes_js__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(15735);
-/* harmony import */ var core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_iterator_js__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var core_js_modules_web_dom_collections_iterator_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6886);
-/* harmony import */ var core_js_modules_web_dom_collections_iterator_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_web_dom_collections_iterator_js__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var core_js_modules_es_array_flat_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(27072);
-/* harmony import */ var core_js_modules_es_array_flat_js__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_flat_js__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(67694);
-/* harmony import */ var core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(2784);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_6__);
-/* harmony import */ var reactstrap__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(91412);
-/* harmony import */ var reactstrap__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(77122);
-/* harmony import */ var _DebriefingContext__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(17665);
-/* harmony import */ var _ShowMoreLess__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(59105);
-/* harmony import */ var _FeedbackIcon__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(99506);
-/* harmony import */ var _Cond2Debriefing_module_css__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(20506);
-/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(69222);
-/* harmony import */ var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(49663);
+/* harmony import */ var core_js_modules_es_array_flat_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(27072);
+/* harmony import */ var core_js_modules_es_array_flat_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_flat_js__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(67694);
+/* harmony import */ var core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(2784);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var reactstrap__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(91412);
+/* harmony import */ var reactstrap__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(77122);
+/* harmony import */ var _DebriefingContext__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(17665);
+/* harmony import */ var _ShowMoreLess__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(59105);
+/* harmony import */ var _FeedbackIcon__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(99506);
+/* harmony import */ var _Cond2Debriefing_module_css__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(20506);
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(69222);
+/* harmony import */ var react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(49663);
 var _jsxFileName = "/Users/sts125/projects/monorepo/libs/debriefing/cond2-debriefing-ui/src/components/ie/Analysis.jsx";
 
 
@@ -7145,20 +7245,39 @@ var _jsxFileName = "/Users/sts125/projects/monorepo/libs/debriefing/cond2-debrie
 
 
 
-
-
-const FEEDBACK_FIELDS = {
-  "error": "feedbackErrors",
-  "errors": "feedbackErrors",
-  "absent": "feedbackAbsent",
-  "outOfOrder": "feedbackOutOfOrder"
-};
 const FEEDBACK_LEADINS = {
-  "error": "The following step(s) have errors:",
-  "errors": "The following step(s) have errors:",
-  "absent": "The following step(s) were missing:",
-  "outOfOrder": "The following steps(s) were performed out of order:"
+  "error": "Incorrectly administered action:",
+  "errors": "Incorrectly administered action:",
+  "absent": "Missing action:",
+  "outOfOrder": "Mistimed action:",
+  "misordered": "Mistimed action:"
 };
+
+function getFeedbackFieldName(status) {
+  let fieldName;
+
+  switch (status) {
+    case "error":
+    case "errors":
+      fieldName = "feedbackErrors";
+      break;
+
+    case "absent":
+      fieldName = "feedbackAbsent";
+      break;
+
+    case "outOfOrder":
+    case "misordered":
+      fieldName = "feedbackOutOfOrder";
+      break;
+
+    default:
+      fieldName = "NOT_FOUND";
+  }
+
+  return fieldName;
+}
+
 function Analysis({
   slide,
   stepPath,
@@ -7168,25 +7287,63 @@ function Analysis({
     getPathData,
     getUserRating,
     ieSummary
-  } = (0,_DebriefingContext__WEBPACK_IMPORTED_MODULE_7__.useDebriefing)();
+  } = (0,_DebriefingContext__WEBPACK_IMPORTED_MODULE_5__.useDebriefing)();
 
   const listSubActions = action => action.subActionsList || false;
 
   const isLeafNode = action => action.subActions.length === 0;
 
+  const subActionErrorsAreHomogeneous = subActions => {
+    // const subActionsWithErrors = subActions.filter(e => e.status !== "good")
+    const subActionsByState = groupSubActionsByStatus(subActions);
+    return Object.keys(subActionsByState).filter(e => e !== "good").length <= 1;
+  };
+
+  const groupSubActionsByStatus = subActions => (0,_utils__WEBPACK_IMPORTED_MODULE_9__.groupByKey)(subActions, "status");
+
+  const mergeLeadinAndParagraphs = (leadin, paras) => {
+    let retVal;
+
+    switch (paras.length) {
+      case 0:
+        retVal = [leadin];
+        break;
+
+      case 1:
+        retVal = [`${leadin} ${paras[0]}`];
+        break;
+
+      default:
+        retVal = [`${leadin} ${paras[0]}`, paras.slice(1)];
+    }
+
+    return retVal;
+  };
+
   const getFeedback = action => {
     const isLeaf = isLeafNode(action);
     const drillDown = listSubActions(action); // console.log("isLeaf", isLeaf, "drillDown", drillDown)
 
-    if ((0,_utils__WEBPACK_IMPORTED_MODULE_11__.isGood)(ieSummary, action.id)) {
+    if ((0,_utils__WEBPACK_IMPORTED_MODULE_9__.isGood)(ieSummary, action.id)) {
       // nothing to be said if this step is done correctly (any potential children are also correct)
       return [];
     } else {
       if (isLeaf) {
-        const errType = (0,_utils__WEBPACK_IMPORTED_MODULE_11__.getStatus)(ieSummary, action.id);
-        const fbFld = FEEDBACK_FIELDS[errType];
-        const msgs = action[fbFld];
-        return msgs.length > 1 ? [`${FEEDBACK_LEADINS[errType]} ${msgs[0]}`, msgs.slice(1)] : [`${FEEDBACK_LEADINS[errType]} ${msgs[0]}`];
+        const errType = (0,_utils__WEBPACK_IMPORTED_MODULE_9__.getStatus)(ieSummary, action.id);
+        console.log(action.id, errType);
+        const fbFld = getFeedbackFieldName(errType);
+        let retVal;
+
+        if ("NOT_FOUND" === fbFld) {
+          retVal = ["UNEXPECTED STATUS VALUE"];
+        } else {
+          const msgs = action[fbFld];
+          console.log(action);
+          console.log(errType, fbFld, msgs);
+          retVal = mergeLeadinAndParagraphs(FEEDBACK_LEADINS[errType], msgs);
+        }
+
+        return retVal;
       } else if (drillDown) {
         // we'll be drilling down on errors within children later on
         return ["There are errors at this step. We will discuss them shortly."];
@@ -7194,220 +7351,241 @@ function Analysis({
         // since we won't be drilling down, we need to concat child error messages
         const saIDs = action.subActions.map(e => e.id);
         const subActionSummaries = Object.values(ieSummary).filter(e => saIDs.includes(e.id));
-        const subsByType = (0,_utils__WEBPACK_IMPORTED_MODULE_11__.groupByKey)(subActionSummaries, "status");
-        let retVal = [];
-        Object.entries(subsByType).forEach(([errorType, errorTypeSteps]) => {
-          if ('notFound' !== errorType) {
-            const feedbackField = FEEDBACK_FIELDS[errorType];
-            const errorTypeStepIDs = errorTypeSteps.map(e => e.id);
-            const errorTypeMessages = action.subActions.filter(e => errorTypeStepIDs.includes(e.id)).map(e => e[feedbackField]).flat();
-            const etm = errorTypeMessages.length > 0 ? [`${FEEDBACK_LEADINS[errorType]} ${errorTypeMessages[0]}`, errorTypeMessages.slice(1)] : [`${errorType} ${errorTypeMessages[0]}`];
-            retVal = retVal.concat(etm.flat());
+        const subsByType = groupSubActionsByStatus(subActionSummaries); // we only care about errors, get rid of those with status of "good"
+
+        delete subsByType['good'];
+        console.log(subsByType); // if (Object.keys(subsByType).length === 1) {
+
+        if (subActionErrorsAreHomogeneous(subActionSummaries)) {
+          // homogenous child error types, just summary from parent rather than concatenating children
+          const errorType = Object.keys(subsByType)[0];
+          const feedbackField = getFeedbackFieldName(errorType);
+
+          if ("NOT_FOUND" === feedbackField) {
+            return ["UNEXPECTED STATUS VALUE"];
+          } else {
+            return mergeLeadinAndParagraphs(FEEDBACK_LEADINS[errorType], action[feedbackField]);
           }
-        });
-        return retVal;
+        } else {
+          let retVal = [];
+          Object.keys(subsByType).forEach(errorType => {
+            if ('notFound' !== errorType) {
+              const feedbackField = getFeedbackFieldName(errorType);
+              const errorTypeSteps = subsByType[errorType];
+              const errorTypeStepIDs = errorTypeSteps.map(e => e.id);
+              const errorTypeMessages = action.subActions.filter(e => errorTypeStepIDs.includes(e.id)).map(e => e[feedbackField]).flat();
+              console.log(feedbackField, errorTypeSteps, errorTypeStepIDs, errorTypeMessages); // const etm = errorTypeMessages.length > 0
+              //   ? [`${FEEDBACK_LEADINS[errorType]} ${errorTypeMessages[0]}`, errorTypeMessages.slice(1)]
+              //   : [`${errorType} ${errorTypeMessages[0]}`]
+
+              const etm = mergeLeadinAndParagraphs(FEEDBACK_LEADINS[errorType], errorTypeMessages);
+              retVal = retVal.concat(etm.flat());
+            }
+          });
+          return retVal;
+        }
       }
     }
   };
 
   const getRelevantNotIndicatedSubActions = slide => {
-    return (0,_utils__WEBPACK_IMPORTED_MODULE_11__.getNotIndicatedSubActions)(slide).filter(ca => ieSummary[ca.id].status !== 'notFound');
+    return (0,_utils__WEBPACK_IMPORTED_MODULE_9__.getNotIndicatedSubActions)(slide).filter(ca => ieSummary[ca.id].status !== 'notFound');
   };
 
-  return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.Fragment, {
-    children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("div", {
-      className: _Cond2Debriefing_module_css__WEBPACK_IMPORTED_MODULE_10__["default"]["feedback-list"],
+  return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.Fragment, {
+    children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("div", {
+      className: _Cond2Debriefing_module_css__WEBPACK_IMPORTED_MODULE_8__["default"]["feedback-list"],
       style: {
         maxHeight: "460px",
         height: "fit-content",
         overflowY: "auto"
       },
-      children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_13__["default"], {
+      children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_11__["default"], {
         size: "sm",
         striped: true,
         bordered: true,
-        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("thead", {
+        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("thead", {
           style: {
             height: "28px",
             backgroundColor: "white",
             position: "sticky",
             top: 0
           },
-          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("tr", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: "Action"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 98,
+              lineNumber: 166,
               columnNumber: 15
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: "Your Rating"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 99,
+              lineNumber: 167,
               columnNumber: 15
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: "System Rating"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 100,
+              lineNumber: 168,
               columnNumber: 15
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: "Feedback"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 101,
+              lineNumber: 169,
               columnNumber: 15
             }, this)]
           }, void 0, true, {
             fileName: _jsxFileName,
-            lineNumber: 97,
+            lineNumber: 165,
             columnNumber: 13
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 89,
+          lineNumber: 157,
           columnNumber: 11
-        }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("tbody", {
-          children: (0,_utils__WEBPACK_IMPORTED_MODULE_11__.getRequiredSubActions)(slide).map((sa, idx) => /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("tr", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("td", {
+        }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tbody", {
+          children: (0,_utils__WEBPACK_IMPORTED_MODULE_9__.getRequiredSubActions)(slide).map((sa, idx) => /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
               children: sa.label
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 107,
+              lineNumber: 175,
               columnNumber: 17
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("td", {
-              children: getUserRating(sa.id) && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("i", {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
+              children: getUserRating(sa.id) && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("i", {
                 className: "bi-check-lg"
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 109,
+                lineNumber: 177,
                 columnNumber: 44
               }, this)
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 108,
+              lineNumber: 176,
               columnNumber: 17
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("td", {
-              children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(_FeedbackIcon__WEBPACK_IMPORTED_MODULE_9__["default"], {
-                isGood: (0,_utils__WEBPACK_IMPORTED_MODULE_11__.isGood)(ieSummary, sa.id)
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
+              children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(_FeedbackIcon__WEBPACK_IMPORTED_MODULE_7__["default"], {
+                isGood: (0,_utils__WEBPACK_IMPORTED_MODULE_9__.isGood)(ieSummary, sa.id)
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 112,
+                lineNumber: 180,
                 columnNumber: 19
               }, this)
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 111,
+              lineNumber: 179,
               columnNumber: 17
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("td", {
-              children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(_ShowMoreLess__WEBPACK_IMPORTED_MODULE_8__["default"], {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
+              children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(_ShowMoreLess__WEBPACK_IMPORTED_MODULE_6__["default"], {
                 messages: getFeedback(sa)
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 115,
+                lineNumber: 183,
                 columnNumber: 19
               }, this)
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 114,
+              lineNumber: 182,
               columnNumber: 17
             }, this)]
           }, idx, true, {
             fileName: _jsxFileName,
-            lineNumber: 106,
+            lineNumber: 174,
             columnNumber: 15
           }, this))
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 104,
+          lineNumber: 172,
           columnNumber: 11
         }, this)]
       }, void 0, true, {
         fileName: _jsxFileName,
-        lineNumber: 88,
+        lineNumber: 156,
         columnNumber: 9
       }, this)
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 80,
+      lineNumber: 148,
       columnNumber: 7
-    }, this), getRelevantNotIndicatedSubActions(slide).length > 0 && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("div", {
-      children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("h5", {
+    }, this), getRelevantNotIndicatedSubActions(slide).length > 0 && /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("div", {
+      children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("h5", {
         children: "The following steps were not indicated:"
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 126,
+        lineNumber: 194,
         columnNumber: 11
-      }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_13__["default"], {
+      }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_11__["default"], {
         size: "sm",
         striped: true,
         bordered: true,
-        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("thead", {
-          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("tr", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+        children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("thead", {
+          children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: "Action"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 130,
+              lineNumber: 198,
               columnNumber: 17
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: "Feedback"
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 131,
+              lineNumber: 199,
               columnNumber: 17
             }, this)]
           }, void 0, true, {
             fileName: _jsxFileName,
-            lineNumber: 129,
+            lineNumber: 197,
             columnNumber: 15
           }, this)
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 128,
+          lineNumber: 196,
           columnNumber: 13
-        }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("tbody", {
-          children: getRelevantNotIndicatedSubActions(slide).map(nra => /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("tr", {
-            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("th", {
+        }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tbody", {
+          children: getRelevantNotIndicatedSubActions(slide).map(nra => /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("tr", {
+            children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("th", {
               children: nra.label
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 137,
+              lineNumber: 205,
               columnNumber: 19
-            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)("td", {
-              children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(_ShowMoreLess__WEBPACK_IMPORTED_MODULE_8__["default"], {
+            }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)("td", {
+              children: /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(_ShowMoreLess__WEBPACK_IMPORTED_MODULE_6__["default"], {
                 messages: nra.feedbackErrors
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 139,
+                lineNumber: 207,
                 columnNumber: 21
               }, this)
             }, void 0, false, {
               fileName: _jsxFileName,
-              lineNumber: 138,
+              lineNumber: 206,
               columnNumber: 19
             }, this)]
           }, nra.id, true, {
             fileName: _jsxFileName,
-            lineNumber: 136,
+            lineNumber: 204,
             columnNumber: 17
           }, this))
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 134,
+          lineNumber: 202,
           columnNumber: 13
         }, this)]
       }, void 0, true, {
         fileName: _jsxFileName,
-        lineNumber: 127,
+        lineNumber: 195,
         columnNumber: 11
       }, this)]
     }, void 0, true, {
       fileName: _jsxFileName,
-      lineNumber: 125,
+      lineNumber: 193,
       columnNumber: 9
-    }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_12__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_14__["default"], {
+    }, this), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_10__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_12__["default"], {
       size: "sm",
       color: "primary",
       onClick: analyzedHandler,
@@ -7415,7 +7593,7 @@ function Analysis({
       children: "Ok"
     }, void 0, false, {
       fileName: _jsxFileName,
-      lineNumber: 149,
+      lineNumber: 217,
       columnNumber: 7
     }, this)]
   }, void 0, true);
@@ -9125,7 +9303,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(67694);
 /* harmony import */ var core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es_array_unscopables_flat_js__WEBPACK_IMPORTED_MODULE_5__);
 /* harmony import */ var _meddbriefer_analysis__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(72105);
-/* harmony import */ var _meddbriefer_scenario_data_utils__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(15773);
+/* harmony import */ var _meddbriefer_feedback_data_constants__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(39384);
+/* harmony import */ var _meddbriefer_scenario_data_utils__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(15773);
 
 const _excluded = ["id", "label", "type", "examineIfAbsent", "examineIfErrors", "promptsIfAbsent", "promptsIfErrors", "subActionsList"];
 
@@ -9136,8 +9315,13 @@ const _excluded = ["id", "label", "type", "examineIfAbsent", "examineIfErrors", 
 
 
 
+
 function path2str(path) {
   return path.map(ind => String(ind + 1)).join(".");
+}
+
+function isRequired(node) {
+  return node.type === _meddbriefer_feedback_data_constants__WEBPACK_IMPORTED_MODULE_7__.ACTION_TYPES.REQ;
 }
 
 function isLeafNode(node) {
@@ -9154,7 +9338,7 @@ function createIESlides(feedback, summaryObj) {
   const top = feedback.IE.Action;
 
   function traverseDepthFirst(currNode, currPath, currDepth) {
-    if (isLeafNode(currNode) || !hasErrors(currNode, summaryObj)) {
+    if (!isRequired(currNode) || isLeafNode(currNode) || !hasErrors(currNode, summaryObj)) {
       return;
     }
 
@@ -10376,7 +10560,7 @@ const B4CA_PhaseIE = {
           label: "Open the patient's airway with a jaw thrust maneuver",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
           feedbackAbsent: [""],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have performed a jaw thrust maneuver before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: ["This patient's airway is patent, as is evident by the fact that he is talking--for example, complaining about pain and difficulty breathing.  If his condition deteriorates and you have reason to suspect  that his airway may be compromised, you should check the  airway using a modified jaw thrust maneuver instead of a head tilt chin lift."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -10703,7 +10887,7 @@ const B4CA_PhaseIE = {
             id: "request-vitals-R",
             label: "check R",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked R"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after applying oxygen, you want to check to make sure his RR has improved. If not, you will want to reflect on why you did not see the expected improvements? Did you select an incorrect intervention? Do you need to escalate your therapies? Are you performing the intervention correctly?", "For example, you may need to recheck your BVM seal, reposition the patient's head or jaw to ensure the airway is open, or place an oropharyngeal or nasopharyngeal airway if not already done."],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -10716,7 +10900,7 @@ const B4CA_PhaseIE = {
             id: "request-vitals-Spo2",
             label: "check Spo2",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked Spo2"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after applying oxygen, you want to check to make sure his SpO2 has improved. If not, you will want to reflect on why you did not see the expected improvements? Did you select an incorrect intervention? Do you need to escalate your therapies? Are you performing the intervention correctly?", "For example, you may need to recheck your BVM seal, reposition the patient's head or jaw to ensure the airway is open, or place an oropharyngeal or nasopharyngeal airway if not already done."],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -10750,21 +10934,6 @@ const B4CA_PhaseIE = {
           feedbackAbsent: [""],
           feedbackOutOfOrder: [""],
           feedbackErrors: ["The patient did not have a penetrating chest wound."],
-          examineIfAbsent: false,
-          examineIfErrors: false,
-          promptsIfAbsent: "",
-          promptsIfErrors: "",
-          subActionsList: false,
-          subActions: []
-        }, {
-          id: "intv-bulky-dressing"
-          /* optional intervention */
-          ,
-          label: "Bulky dressing",
-          type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
-          feedbackAbsent: [""],
-          feedbackOutOfOrder: [""],
-          feedbackErrors: [""],
           examineIfAbsent: false,
           examineIfErrors: false,
           promptsIfAbsent: "",
@@ -10879,7 +11048,7 @@ const B4CA_PhaseIE = {
           }]
         }, {
           id: "checks-skin",
-          label: "checks skin",
+          label: "check skin",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["Pallor and cyanosis are signs of inadequate oxygenation and may be caused by shock or respiratory failure. This patient had pink skin.", "While cold skin suggests decompensated shock, a patient with warm skin, like this patient, may be hemodynamically stable or they may be in compensated shock.", "This patient had diaphoretic skin, which in this case is non-specific, but should prompt you to think about shock."],
           feedbackOutOfOrder: [""],
@@ -11049,9 +11218,7 @@ const B4CA_PhaseIE = {
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["This patient should be evaluated at the Level I trauma center that is 12 minutes away, where they can provide definitive care for his injuries. The need for a Level 1 trauma center is indicated by the mechanism of injury--namely, a motorcycle crash > 20 mph and fall after a 15-ft jump."],
           feedbackOutOfOrder: ["Initial transport decisions should be made following the 'Primary Survey' (ABCs) because that is when the provider decides whether the patient can be further stabilized on scene or taken directly to a hospital in a 'load and go' scenario. The secondary assessment is only performed on scene if the situation is NOT a 'load and go.' Making transport decisions early is especially important if you are calling for an air ambulance to account for the time it takes for them to arrive."],
-          feedbackErrors: [""
-          /*This patient should be evaluated at the Level I trauma center that is 12 minutes away, where they can provide definitive care for his injuries. The need for a Level 1 trauma center is indicated by the mechanism of injury--namely, a motorcycle crash > 20 mph and fall after a 15-ft jump.*/
-          ],
+          feedbackErrors: ["This patient should be evaluated at the Level I trauma center that is 12 minutes away, where they can provide definitive care for his injuries. The need for a Level 1 trauma center is indicated by the mechanism of injury--namely, a motorcycle crash > 20 mph and fall after a 15-ft jump."],
           examineIfAbsent: false,
           examineIfErrors: false,
           promptsIfAbsent: "",
@@ -11178,8 +11345,8 @@ const B4CA_PhaseIE = {
         promptsIfErrors: "",
         subActionsList: true,
         subActions: [{
-          id: "assessment-inspects-skull",
-          label: "Inspect and palpate the scalp and skull",
+          id: "assessment-head-injury",
+          label: "Check head for injury",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: [""],
           feedbackOutOfOrder: [""],
@@ -11215,12 +11382,8 @@ const B4CA_PhaseIE = {
           promptsIfAbsent: "",
           promptsIfErrors: "",
           subActionsList: false,
-          subActions: [
-          /* subActions used for analysis but not for listing as bullet points
-                               summary of combined subActions' statuses will be in "inspect-eyes" status */
-          {
+          subActions: [{
             id: "inspects-eyes-PERRLA",
-            //an example of needing to bottom out at a defined interface id
             feedbackAbsent: ["Abnormal eye movement or pupils, which this patient fortunately did not have, suggest intracranial injury and should prompt you to rapidly transfer your patient to a trauma center."],
             subActions: []
           }, {
@@ -11232,7 +11395,7 @@ const B4CA_PhaseIE = {
           id: "inspects-ears",
           label: 'Inspect the ears for blood, other fluids, and bruising ("battle signs")',
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["Although not found in this case, bleeding from the ear may be indicative of a basilar skull fracture and bruising behind the ear suggests a basilar skull fracture (Battle's sign)."],
+          feedbackAbsent: ["Although not found in this case, bleeding from the ear or bruising behind the ear may be indicative of a basilar skull fracture (Battle's sign)."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -11425,7 +11588,7 @@ const B4CA_PhaseIE = {
             subActions: []
           }, {
             id: "inspects-palpates-anterior-thorax-crepitation",
-            feedbackAbsent: ["The patient had some left-sided crepitus, suggesting that there is air under the skin, likely from an underlying lung injury, namely a pneumothorax.", "The patient had symmetric movement of his chest. Recall that paradoxical chest wall motion suggests flail chest, where multiple rib fractures lead to an unstable portion of the chest wall."],
+            feedbackAbsent: ["The patient had some left-sided crepitus, suggesting that there is air under the skin, likely from an underlying lung injury, namely a pneumothorax."],
             subActions: []
           }, {
             id: "inspects-anterior-thorax-paradoxical-motion",
@@ -11660,15 +11823,17 @@ const B4CA_PhaseIE = {
         examineIfErrors: false,
         promptsIfAbsent: "",
         promptsIfErrors: "",
-        subActionsList: true,
+        subActionsList: false,
         subActions: [{
           id: "inspects-posterior-other-injury",
 
           /* no feedback in excel sheet */
+          label: "inspect posterior for injury",
           feedbackAbsent: [""],
           subActions: []
         }, {
           id: "inspects-posterior-step-offs",
+          label: "inspect posterior for step-offs",
           feedbackAbsent: ["A palpable step-off, which the patient did not have, would suggest a fracture."],
           subActions: []
         }]
@@ -11699,18 +11864,34 @@ const B4CA_PhaseIE = {
         subActionsList: false,
         subActions: [{
           id: "intv-splint-fracture",
-          label: "applied a sling",
+          label: "splint wrist",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["Splint the patient's wrist before transferring him to an immobilization device."],
           subActions: []
         }, {
           id: "intv-sling",
+          label: "sling shoulder",
           feedbackAbsent: ["Apply a sling to the patient's injured shoulder before transferring him to an immobilization device."],
           subActions: []
         }]
       }, {
+        id: "intv-bulky-dressing"
+        /* optional intervention */
+        ,
+        label: "Bulky dressing",
+        type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
+        feedbackAbsent: [""],
+        feedbackOutOfOrder: [""],
+        feedbackErrors: [""],
+        examineIfAbsent: false,
+        examineIfErrors: false,
+        promptsIfAbsent: "",
+        promptsIfErrors: "",
+        subActionsList: false,
+        subActions: []
+      }, {
         id: "intv-place-on-immobilization-device",
-        label: "Placing the patient on an immobilization device",
+        label: "Place the patient on an immobilization device",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
         feedbackAbsent: ["An immobilization device (e.g., long backboard, vacuum mattress) maintains spinal alignment for transfer to the stretcher. This patient requires full spinal immobilization due to his mechanism of injury.  Failure to fully immobilize this patient could lead to further spinal injury."],
         feedbackOutOfOrder: [""],
@@ -11723,7 +11904,7 @@ const B4CA_PhaseIE = {
         subActions: []
       }, {
         id: "intv-spinal-immobilization-technique-attach-cid",
-        label: "applied padding (e.g., CID, towels) to keep head inline with spine",
+        label: "apply padding (e.g., CID, towels) to keep head inline with spine",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
         feedbackAbsent: ["Once the patient is transferred onto a long backboard or other spinal immobilization device, the CID should be utilized to maintain cervical spine precautions. This will reduce cervical motion and prevent further injury."],
         feedbackOutOfOrder: [""],
@@ -11867,7 +12048,7 @@ const B4CA_PhaseIE = {
         id: "reassess-med-admin",
 
         /* optional intervention */
-        label: "Checks that pain medications are working.",
+        label: "Check that pain medications are working.",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
         feedbackAbsent: [""],
         feedbackOutOfOrder: [""],
@@ -11925,7 +12106,7 @@ const B4CA_PhaseIE = {
         id: "intv-control-shock-technique-administer-iv-boluses"
         /* not indicated intervention */
         ,
-        label: "IV fluid resuscitation",
+        label: "Administer IV fluid resuscitation",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.NOTIND,
         feedbackAbsent: [""],
         feedbackOutOfOrder: [""],
@@ -12373,7 +12554,7 @@ const B5CA_PhaseIE = {
         label: "Place patient in supine position",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
         feedbackAbsent: ["This patient presents leaning forward at a bar. You and your partner should carefully place him in supine position in order to examine him. Due to hypotension, he should remain in supine position except while you examine his posterior during the secondary survey."],
-        feedbackOutOfOrder: [""],
+        feedbackOutOfOrder: ["You should have placed the patient in supine position before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
         feedbackErrors: [""],
         examineIfAbsent: false,
         examineIfErrors: false,
@@ -12390,9 +12571,11 @@ const B5CA_PhaseIE = {
         feedbackAbsent: ["Part of managing a head and/or spinal injury includes manual stabilization of the cervical spine before beginning your assessment, as movement may further injure the patient. While this patient may not have an obvious injury to the head or spine, you want to always stabilize the spine before you begin your assessment. As you continue your assessment, you may decide he no longer needs spinal stabilization, but you will never be wrong to err on the side of caution. A cervical collar will help you maintain stability while you continue with your exam."],
         feedbackOutOfOrder: [""],
         feedbackErrors: [""],
-        examineIfAbsent: true,
+        examineIfAbsent: false,
         examineIfErrors: false,
-        promptsIfAbsent: "Did not consider risk for cervical spine injury; considered cervical spine injury but did not think the mechanism necessitated spinal stabilization",
+        promptsIfAbsent: "",
+
+        /*Did not consider risk for cervical spine injury; considered cervical spine injury but did not think the mechanism necessitated spinal stabilization*/
         promptsIfErrors: "",
         subActionsList: true,
         subActions: [{
@@ -12486,7 +12669,7 @@ const B5CA_PhaseIE = {
           label: "Open the patient's airway with a jaw thrust maneuver",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
           feedbackAbsent: [""],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have performed a jaw thrust maneuver before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: ["This patient's airway is patent, as is evident by the fact that he is talking--for example, complaining about pain and difficulty breathing.  If his condition deteriorates and you have reason to suspect that his airway may be compromised, you should check the  airway while maintaining the cervical spine: use a modified jaw thrust maneuver instead of a head tilt chin lift."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -12790,7 +12973,7 @@ const B5CA_PhaseIE = {
           label: "administering concentrated oxygen via a non-rebreather mask or nasal cannula",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["The patient's respiratory rate is fast, but he is ventilating adequately. His SpO2, however, is low, suggesting inadequate oxygenation. You can use either a nasal canula or non-rebreather mask to help with oxygenation. Note that you are not assisting the patient with ventilation. In the case of a pneumothorax, you should avoid positive pressure ventilation, if possible, as this could increase the amount of air outside of the lungs, turning a pneumothorax into a tension pneumothorax."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["Oxygen administration should be performed during the primary survey as this intervention falls under 'Breathing' in the ABC's."],
           feedbackErrors: ["This patient should be allowed to breathe independently. O2 flow rate should be adjusted to achieve an SpO2 between 95 and 99%."],
           examineIfAbsent: true,
           examineIfErrors: false,
@@ -12802,7 +12985,7 @@ const B5CA_PhaseIE = {
             label: "administer concentrated oxygen via a non-rebreather mask",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
             feedbackAbsent: ["The patient's respiratory rate is fast, but he is ventilating adequately. His SpO2, however, is low, suggesting inadequate oxygenation. You can use either a nasal canula or non-rebreather mask to help with oxygenation. Note that you are not assisting the patient with ventilation. In the case of a pneumothorax, you should avoid positive pressure ventilation, if possible, as this could increase the amount of air outside of the lungs, turning a pneumothorax into a tension pneumothorax."],
-            feedbackOutOfOrder: [""],
+            feedbackOutOfOrder: ["Oxygen administration should be performed during the primary survey as this intervention falls under 'Breathing' in the ABC's."],
             feedbackErrors: ["This patient should be allowed to breathe independently. O2 flow rate should be adjusted to achieve an SpO2 between 95 and 99%."],
             examineIfAbsent: false,
             examineIfErrors: false,
@@ -12816,7 +12999,7 @@ const B5CA_PhaseIE = {
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.ALT,
             alternativeToIntv: "intv-supplemental-oxygen-device-non-rebreather-mask",
             feedbackAbsent: ["The patient's respiratory rate is fast, but he is ventilating adequately. His SpO2, however, is low, suggesting inadequate oxygenation. You can use either a nasal canula or non-rebreather mask to help with oxygenation. Note that you are not assisting the patient with ventilation. In the case of a pneumothorax, you should avoid positive pressure ventilation, if possible, as this could increase the amount of air outside of the lungs, turning a pneumothorax into a tension pneumothorax."],
-            feedbackOutOfOrder: [""],
+            feedbackOutOfOrder: ["Oxygen administration should be performed during the primary survey as this intervention falls under 'Breathing' in the ABC's."],
             feedbackErrors: ["This patient should be allowed to breathe independently. O2 flow rate should be adjusted to achieve an SpO2 between 95 and 99%."],
             examineIfAbsent: false,
             examineIfErrors: false,
@@ -12855,7 +13038,7 @@ const B5CA_PhaseIE = {
           id: "reassess-AB",
           label: "Check that breathing management interventions are working by listening for a rush of air, listening for bilateral lung sounds, and requesting relevant vitals--in particular, BP, P, R, and SpO2",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how do his HR, RR, and BP look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
+          feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how do his HR, RR, BP, and SpO2 look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -12867,7 +13050,7 @@ const B5CA_PhaseIE = {
             id: "request-vitals-BP",
             label: "vital BP",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked BP"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how does his BP look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -12880,7 +13063,7 @@ const B5CA_PhaseIE = {
             id: "request-vitals-Spo2",
             label: "check Spo2",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked Spo2"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how does his SpO2 look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -12893,7 +13076,7 @@ const B5CA_PhaseIE = {
             id: "request-vitals-R",
             label: "check R",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked R"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how does his RR look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -12906,7 +13089,7 @@ const B5CA_PhaseIE = {
             id: "request-vitals-P",
             label: "check P",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked P"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how does his HR look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -13336,10 +13519,10 @@ const B5CA_PhaseIE = {
         promptsIfErrors: "",
         subActionsList: true,
         subActions: [{
-          id: "assessment-inspects-skull",
-          label: "Inspect and palpate the scalp and skull",
+          id: "assessment-head-injury",
+          label: "Check head for injury",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["You would have noted a 1.5 inch laceration on the R side of the patient's head, above his ear."],
+          feedbackAbsent: ["If you had checked the skull, you would have noted a 1.5 inch laceration on the R side of the patient's head, above his ear."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -13386,7 +13569,7 @@ const B5CA_PhaseIE = {
           id: "inspects-ears",
           label: "Inspect the ears for blood, other fluids, and bruising (\"battle signs\")",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["Although not found in this case, bleeding or CF from the ear may be indicative of a basilar skull fracture. Additionally, bruising behind the ear suggests a basilar skull fracture (Battle's sign)."],
+          feedbackAbsent: ["Although not found in this case, bleeding or CF from the ear or bruising behind the ear may suggest a basilar skull fracture (Battle's sign)."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -13881,7 +14064,7 @@ const B5CA_PhaseIE = {
         }]
       }, {
         id: "intv-spinal-immobilization-technique-attach-cid",
-        label: "applied padding (e.g., CID, towels) to keep head inline with spine",
+        label: "apply padding (e.g., CID, towels) to keep head inline with spine",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
         feedbackAbsent: [""],
         feedbackOutOfOrder: [""],
@@ -13998,7 +14181,7 @@ const B5CA_PhaseIE = {
         subActions: []
       }, {
         id: "intv-control-shock-technique-keep-patient-warm",
-        label: "keeping the patient warm, using some of the following methods: a) applying heat packs to the patient's groin or armpits, b) covering the patient with blankets, c) turning the heat up in the ambulance.",
+        label: "keep the patient warm, using some of the following methods: a) applying heat packs to the patient's groin or armpits, b) covering the patient with blankets, c) turning the heat up in the ambulance.",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
         feedbackAbsent: ["This patient is hypotensive with a fast heart rate, suggesting possible shock. Patients in shock have trouble maintaining their body temperatures, so they should be kept warm. It is important to keep this patient warm because hypothermia can cause additional problems or worsening of the patient's current problems, including worsening hypotension, arrhythmias, or even cardiac arrest."],
         feedbackOutOfOrder: [""],
@@ -14078,6 +14261,21 @@ const B5CA_PhaseIE = {
         feedbackAbsent: [""],
         feedbackOutOfOrder: [""],
         feedbackErrors: ["This patient did not have any injuries to the upper extremities."],
+        examineIfAbsent: false,
+        examineIfErrors: false,
+        promptsIfAbsent: "",
+        promptsIfErrors: "",
+        subActionsList: false,
+        subActions: []
+      }, {
+        id: "intv-bulky-dressing ",
+
+        /* not indicated intervention */
+        label: "Bulky dressing",
+        type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.NOTIND,
+        feedbackAbsent: [""],
+        feedbackOutOfOrder: [""],
+        feedbackErrors: ["This patient did not have any injuries that needed to be stabilized by a bulky dressing."],
         examineIfAbsent: false,
         examineIfErrors: false,
         promptsIfAbsent: "",
@@ -14686,7 +14884,7 @@ const C5CA_PhaseIE = {
         id: "intv-spinal-immobilization-technique-manual-c-spine",
         label: "Apply (or direct a partner to apply) manual c-spine stabilization",
         type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-        feedbackAbsent: [""],
+        feedbackAbsent: ["This patient has been shot in the abdomen and leg. While this may not directly suggest an injury to the spine, if you are unable to definitively rule out the possibility of a spinal injury (e.g., could he have fallen and hit his head after being shot?), you should have taken manual c-spine stabilization. You should have maintained it throughout until you were able to definitively rule out an injury to the spine."],
         feedbackOutOfOrder: ["During trauma situations it is necessary to stabilize the c-spine before continuing as not doing so may cause further injury to the patient."],
         feedbackErrors: [""],
         examineIfAbsent: false,
@@ -14709,10 +14907,10 @@ const C5CA_PhaseIE = {
         subActionsList: true,
         subActions: [{
           id: "intv-control-bleeding-direct-pressure-and-tourniquet",
-          label: "applying direct pressure and a tourniquet as far proximal to the gun shot wound on the patient's left thigh as possible",
+          label: "apply direct pressure and a tourniquet as far proximal to the gun shot wound on the patient's left thigh as possible",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["When you recognize the patient's life-threatening bleed, the first thing you should do is apply direct pressure or direct someone else to do so.", "While the ultimate management of this patient's life-threatening bleed is surgical, it is critical that you stop the bleeding as soon as possible. To do this, you should use a tourniquet and place it as far proximally as possible."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have managed severe external bleeding by applying a tourniquet before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: ["Be sure to place the tourniquet as far proximally to the wound as possible."],
           examineIfAbsent: true,
           examineIfErrors: false,
@@ -14723,8 +14921,8 @@ const C5CA_PhaseIE = {
             id: "intv-control-severe-bleeding-technique-direct-pressure",
             label: "manage severe external bleeding by applying direct pressure",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["When you recognize the patient's life-threatening bleed, the first thing you should do is apply direct pressure or direct someone else to do so. In instances of limb injury with significant bleeding a tourniquet may be appropriate first-line management is apply direct pressure or direct someone else to do so."],
-            feedbackOutOfOrder: [""],
+            feedbackAbsent: ["When you recognize the patient's life-threatening bleed, the first thing you should do is apply direct pressure or direct someone else to do so."],
+            feedbackOutOfOrder: ["You should have managed severe external bleeding by applying direct pressure to the leg before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
             feedbackErrors: [""],
             examineIfAbsent: false,
             examineIfErrors: false,
@@ -14737,7 +14935,7 @@ const C5CA_PhaseIE = {
             label: "manage severe external bleeding by applying tourniquet as far proximal to the wound as possible",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
             feedbackAbsent: ["While the ultimate management of this patient's life-threatening bleed is surgical, it is critical that you stop the bleeding as soon as possible. To do this, you should use a tourniquet and place it as far proximally as possible."],
-            feedbackOutOfOrder: [""],
+            feedbackOutOfOrder: ["You should have managed severe external bleeding by applying tourniquet before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
             feedbackErrors: ["Be sure to place the tourniquet as far proximally to the wound as possible."],
             examineIfAbsent: false,
             examineIfErrors: false,
@@ -14750,7 +14948,7 @@ const C5CA_PhaseIE = {
           id: "check-bleeding",
           label: "Confirm that bleeding stopped and pulses are absent",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["After you apply direct pressure and place your tourniquet, you should ensure that the bleeding has stopped and check to ensure that pulses are absent. If this is not the cause, you may need a second tourniquet."],
+          feedbackAbsent: ["After you apply direct pressure and place your tourniquet, you should ensure that the bleeding has stopped and check to ensure that pulses are absent. If this is not the case, you may need a second tourniquet."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: true,
@@ -14762,7 +14960,7 @@ const C5CA_PhaseIE = {
             id: "request-intervention-status-intv-control-severe-bleeding-technique-direct-pressure",
             label: "Request status of direct pressure technique",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["After you apply direct pressure and place your tourniquet, you should ensure that the bleeding has stopped and check to ensure that pulses are absent. If this is not the cause, you may need a second tourniquet."],
+            feedbackAbsent: ["After you apply direct pressure, you should ensure that the bleeding has stopped and check to ensure that pulses are absent. If this is not the case, you will need to apply a tourniquet."],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -14775,7 +14973,7 @@ const C5CA_PhaseIE = {
             id: "request-intervention-status-intv-control-severe-bleeding-technique-tourniquet",
             label: "",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["After you place your tourniquet, you should ensure that the bleeding has stopped"],
+            feedbackAbsent: ["After you place your tourniquet, you should ensure that the bleeding has stopped and check to ensure that pulses are absent. If this is not the case, you may need a second tourniquet."],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -14822,7 +15020,7 @@ const C5CA_PhaseIE = {
           label: "Pressure dressing",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
           feedbackAbsent: [""],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have applied a pressure dressing before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: ["After dressing the patient's GSWs, a pressure dressing could be placed to maintain bleeding control."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -14889,7 +15087,7 @@ const C5CA_PhaseIE = {
           label: "Used a modified jaw thrust to check this patient's airway",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["Use a modified jaw thrust instead of a head-tilt chin-lift to check this patient’s airway, since there is potential head or spinal injury in assault cases such as this."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have performed a modified jaw thrust before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: ["A modified jaw thrust could make it easier to perform bag-valve mask ventilation, since it opens the airway."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -15215,7 +15413,7 @@ const C5CA_PhaseIE = {
           id: "reassess-AB",
           label: "Check that airway/breathing interventions are working by checking relevant vitals--in particular, SpO2",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after performing a needle decompression, you will listen for a rush of air and look for improvement in the patient's exam: is he breathing more comfortably, do you hear breath sounds bilaterally? You will also assess his vitals: how do his HR, RR, and BP look? If your intervention does not yield the expected results, ask yourself: was my diagnosis correct? Was my intervention correct? What else should I consider?"],
+          feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after starting bag-mask ventilation, you want to see if the patient's SpO2 is improved. If not, you will want to reflect on why you did not see the expected improvements? Did you select an incorrect intervention? Do you need to escalate your therapies? Are you performing the intervention correctly?"],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -15227,7 +15425,7 @@ const C5CA_PhaseIE = {
             id: "request-vitals-Spo2",
             label: "check Spo2",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked Spo2"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after starting bag-mask ventilation, you want to see if the patient's SpO2 is improved. If not, you will want to reflect on why you did not see the expected improvements? Did you select an incorrect intervention? Do you need to escalate your therapies? Are you performing the intervention correctly?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -15244,7 +15442,7 @@ const C5CA_PhaseIE = {
           label: "Nasal cannula",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
           feedbackAbsent: ["This patient was tachypneic and taking shallow breaths. Paired with your inability to capture his SpO2, this suggests that he needs assistance with both ventilation and oxygenation. While the use of nasal canula would help with oxygenation, it would have been more effective to move directly toward BVM ventilation."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["Oxygen administration should be performed during the primary survey as this intervention falls under 'Breathing' in the ABC's."],
           feedbackErrors: ["This patient was tachypneic and taking shallow breaths. Paired with your inability to capture his SpO2, this suggests that he needs assistance with both ventilation and oxygenation. While the use of nasal canula would help with oxygenation, it would have been more effective to move directly toward BVM ventilation."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -15259,7 +15457,7 @@ const C5CA_PhaseIE = {
           label: "Non-rebreather mask",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
           feedbackAbsent: ["This patient was tachypneic and taking shallow breaths. Paired with your inability to capture his SpO2, this suggests that he needs assistance with both ventilation and oxygenation. While the use of a non-rebreather mask would help with oxygenation, it would have been more effective to move directly toward BVM ventilation."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["Oxygen administration should be performed during the primary survey as this intervention falls under 'Breathing' in the ABC's."],
           feedbackErrors: ["This patient was tachypneic and taking shallow breaths. Paired with your inability to capture his SpO2, this suggests that he needs assistance with both ventilation and oxygenation. While the use of a non-rebreather mask would help with oxygenation, it would have been more effective to move directly toward BVM ventilation."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -15611,8 +15809,8 @@ const C5CA_PhaseIE = {
         promptsIfErrors: "",
         subActionsList: true,
         subActions: [{
-          id: "assessment-inspects-skull",
-          label: "Inspect and palpate the scalp and skull",
+          id: "assessment-head-injury",
+          label: "Check head for injury",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: [""],
           feedbackOutOfOrder: [""],
@@ -15651,17 +15849,19 @@ const C5CA_PhaseIE = {
           subActions: [{
             id: "inspects-eyes-PERRLA",
             feedbackAbsent: ["Abnormal eye movement or pupils, which this patient fortunately did not have, suggest intracranial injury and should prompt you to rapidly transfer your patient to a trauma center."],
+            subActionsList: false,
             subActions: []
           }, {
             id: "inspects-eyes-racoon",
             feedbackAbsent: ["This aspect of the exam was normal in this patient, but bruising around the eyes may be caused by basilar skull fracture."],
+            subActionsList: false,
             subActions: []
           }]
         }, {
           id: "inspects-ears",
           label: "Inspect the ears for blood, other fluids, and bruising (\"battle signs\")",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["Although not found in this case, bleeding from the ear may be indicative of a basilar skull fracture and bruising behind the ear suggests a basilar skull fracture (Battle's sign)."],
+          feedbackAbsent: ["Although not found in this case, bleeding from the ear or bruising behind the ear may be indicative of a basilar skull fracture (Battle's sign)."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -15672,10 +15872,12 @@ const C5CA_PhaseIE = {
           subActions: [{
             id: "inspects-ears-blood",
             feedbackAbsent: ["Although not found in this case, bleeding from the ear may be indicative of a basilar skull fracture."],
+            subActionsList: false,
             subActions: []
           }, {
             id: "inspects-ears-bruising",
             feedbackAbsent: ["Although not found in this case, bruising behind the ear suggests a basilar skull fracture (Battle's sign)."],
+            subActionsList: false,
             subActions: []
           }]
         }, {
@@ -16078,7 +16280,7 @@ const C5CA_PhaseIE = {
         examineIfErrors: false,
         promptsIfAbsent: "",
         promptsIfErrors: "",
-        subActionsList: true,
+        subActionsList: false,
         subActions: [{
           id: "inspects-posterior-other-injury",
           feedbackAbsent: [""],
@@ -16157,7 +16359,7 @@ const C5CA_PhaseIE = {
       }, {
         id: "intv-establish-iv",
         label: "Establish at lease one large bore IV en route",
-        type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
+        type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
         feedbackAbsent: ["Even if you had no imminent plans to administer fluids, it is beneficial to preemptively place IVs in case your patient were to deteriorate. Keep in mind that if your patient is bleeding and becoming more and more hypotensive, inserting an IV will become increasingly difficult."],
         feedbackOutOfOrder: [""],
         feedbackErrors: ["Even if you had no imminent plans to administer fluids, it is beneficial to preemptively place IVs in case your patient were to deteriorate. Keep in mind that if your patient is bleeding and becoming more and more hypotensive, inserting an IV will become increasingly difficult."],
@@ -16194,7 +16396,7 @@ const C5CA_PhaseIE = {
           subActions: []
         }, {
           id: "intv-control-shock-technique-keep-patient-warm",
-          label: "keeping the patient warm, using some of the following methods: a) applying heat packs to the patient's groin or armpits, b) covering the patient with blankets, c) turning the heat up in the ambulance.",
+          label: "keep the patient warm, using some of the following methods: a) applying heat packs to the patient's groin or armpits, b) covering the patient with blankets, c) turning the heat up in the ambulance.",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["It is important to keep this patient warm because hypothermia can cause additional problems or worsening of the patient's current problems, including hypotension, arrhythmias, or even cardiac arrest."],
           feedbackOutOfOrder: [""],
@@ -16236,7 +16438,7 @@ const C5CA_PhaseIE = {
             id: "request-vitals-BP",
             label: "vital BP",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked BP"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after bolusing fluids, you should check to see if the patient's blood pressure has improved. If not, you will want to reflect on why you did not see the expected improvements? Did you select an incorrect intervention? Do you need to escalate your therapies?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -16249,7 +16451,7 @@ const C5CA_PhaseIE = {
             id: "request-vitals-P",
             label: "check P",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["You should have checked P"],
+            feedbackAbsent: ["When you decide your patient needs a treatment, you must ensure your treatment had the intended outcomes. In this case, after bolusing fluids, you should check to see if the patient's HR has improved. If not, you will want to reflect on why you did not see the expected improvements? Did you select an incorrect intervention? Do you need to escalate your therapies?"],
             feedbackOutOfOrder: [""],
             feedbackErrors: [""],
             examineIfAbsent: false,
@@ -16415,6 +16617,21 @@ const C5CA_PhaseIE = {
         feedbackAbsent: [""],
         feedbackOutOfOrder: [""],
         feedbackErrors: ["The patient did not have any injuries requiring a sling."],
+        examineIfAbsent: false,
+        examineIfErrors: false,
+        promptsIfAbsent: "",
+        promptsIfErrors: "",
+        subActionsList: false,
+        subActions: []
+      }, {
+        id: "intv-bulky-dressing ",
+
+        /* not indicated intervention */
+        label: "Bulky dressing",
+        type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.NOTIND,
+        feedbackAbsent: [""],
+        feedbackOutOfOrder: [""],
+        feedbackErrors: ["This patient did not have any injuries that needed to be stabilized by a bulky dressing."],
         examineIfAbsent: false,
         examineIfErrors: false,
         promptsIfAbsent: "",
@@ -16976,7 +17193,7 @@ const SC8CP_PhaseIE = {
           id: "checks-skin",
           label: "check skin",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: [""],
+          feedbackAbsent: ["In this case, the patient had been pulled from a pool, making a skin exam challenging, but remember that clammy, diaphoretic skin suggests shock. Also, by checking this patient's skin color, you would have noticed he had dry, cyanotic skin. Pallor and cyanosis are signs of inadequate oxygenation and may be caused by respiratory failure or shock.", "Finally, by checking skin temperature, you would have noticed cold skin, which could be because of inadequate perfusion (decompensated shock) or environmental factors."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -17133,7 +17350,7 @@ const SC8CP_PhaseIE = {
           label: "Open the patient's airway with a jaw thrust maneuver",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["Opening the airway is a necessary precursor to inserting a basic adjunct.  The patient is at risk for a cervical spine injury, so opening the airway via head tilt can compromise spinal stability. Instead, you should use the jaw-thrust technique to open the airway while maintaining the cervical spine."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have performed a jaw thrust maneuver before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: [""],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -17143,7 +17360,7 @@ const SC8CP_PhaseIE = {
           subActions: []
         }, {
           id: "intv-airway-patency-technique-suction-airway",
-          label: "Suction the patient's mouth using a Yankauer (rigid)  or Long multi-use catheter",
+          label: "Suction the patient's mouth using a Yankauer (rigid) or Long multi-use catheter",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["This patient had water and vomit in his airway, which should have been suctioned to establish a patent airway and allow you to insert a basic airway and, ultimately, to intubate this patient."],
           feedbackOutOfOrder: ["Suctioning falls under 'A' in the ABCs. Airway obstructions are a potentially life threatening condition and require immediate intervention. Thus, debris in the airway or obstructions need to be identified and fixed during the primary assessment.", "In critical patients (especially those that are unconscious), the airway requires frequent reassessment. Be even more cautious when the patient has vomited recently or may lose consciousness very quickly.", "The patient's own tongue can be an obstruction, as well (when unconscious)."],
@@ -17161,7 +17378,7 @@ const SC8CP_PhaseIE = {
           label: "Position the patient",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.OPT,
           feedbackAbsent: [""],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["You should have placed the patient in supine position before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
           feedbackErrors: ["Placing the child on his left side would help to maintain his airway"],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -17224,7 +17441,7 @@ const SC8CP_PhaseIE = {
           id: "request-intv-status-NPA-or-OPA",
           label: "Confirm that the patient accepted the airway adjunct",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["Remember: 'basic before advanced'. This patient is unconscious and therefore unable to maintain his airway (e.g. without an OPA, the tongue could obstruct the airway.)  Insert a basic airway adjunct to maintain airway patency and allow you to pre-oxygenate the patient prior to intubation."],
+          feedbackAbsent: ["Remember to confirm that the patient accepted the airway adjunct"],
           feedbackOutOfOrder: ["In the event of a potentially compromised airway (including patients who are unconscious), the patient needs to have an airway adjunct for airway support prior to the secondary survey."],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -17236,7 +17453,7 @@ const SC8CP_PhaseIE = {
             id: "request-intervention-status-intv-nasopharyngeal-airway",
             label: "Confirm that the patient accepted the NPA",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-            feedbackAbsent: ["Remember: 'basic before advanced'. This patient is unconscious and therefore unable to maintain his airway (e.g. without an OPA, the tongue could obstruct the airway.)  Insert a basic airway adjunct to maintain airway patency and allow you to pre-oxygenate the patient prior to intubation."],
+            feedbackAbsent: ["Remember to confirm that the patient accepted the NPA"],
             feedbackOutOfOrder: ["In the event of a potentially compromised airway (including patients who are unconscious), the patient needs to have an airway adjunct for airway support prior to the secondary survey."],
             examineIfAbsent: false,
             examineIfErrors: false,
@@ -17249,7 +17466,7 @@ const SC8CP_PhaseIE = {
             label: "Confirm that the patient accepted the OPA",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.ALT,
             alternativeToIntv: "request-intervention-status-intv-nasopharyngeal-airway",
-            feedbackAbsent: ["Remember: 'basic before advanced'. This patient is unconscious and therefore unable to maintain his airway (e.g. without an OPA, the tongue could obstruct the airway.)  Insert a basic airway adjunct to maintain airway patency and allow you to pre-oxygenate the patient prior to intubation."],
+            feedbackAbsent: ["Remember to confirm that the patient accepted the OPA"],
             feedbackOutOfOrder: ["In the event of a potentially compromised airway (including patients who are unconscious), the patient needs to have an airway adjunct for airway support prior to the secondary survey."],
             examineIfAbsent: false,
             examineIfErrors: false,
@@ -17346,7 +17563,7 @@ const SC8CP_PhaseIE = {
                 label: "Nasal cannula",
                 type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
                 feedbackAbsent: ["This patient has inadequate respirations and requires ventilatory support. Even if you identify immediately that you want to intubate this patient, he would benefit from starting with a bag-valve mask attached to 15LPM O2 to preoxygenate him prior to intubation. Alternatively, oxygenation with a nasal cannula could be coupled with BVM ventilation."],
-                feedbackOutOfOrder: [""],
+                feedbackOutOfOrder: ["Problems with ventilation and oxygenation are life threatening and should be addressed by oxygen administration and BVM ventilation before you move on to your secondary survey. Repeat your exam and check vitals to ensure your interventions have worked as you expected. If not, your patient may deteriorate as you continue on with your examination."],
                 feedbackErrors: ["Use a bag-valve mask attached to 15LPM O2 or greater to preoxygenate the patient prior to intubation. Alternatively, 25 LPM of O2 via nasal cannula while simultaneously performing BVM ventilations with high-flow oxygen could be used for pre-oxygenation."],
                 examineIfAbsent: false,
                 examineIfErrors: false,
@@ -17361,7 +17578,7 @@ const SC8CP_PhaseIE = {
             label: "Intubate the patient by placing an appropriately sized endotracheal tube or alternative/rescue airway",
             type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
             feedbackAbsent: ["Ultimately, this patient should be intubated. This patient has a GCS score of 3; remember, GCS <8, intubate. Since he is unconscious, you need a reliable way to oxygenate and ventilate this patient. While BVM ventilation with an adjunct may be appropriate for a short transport, this near-drowning patient is at increased risk for aspiration, so securing an airway is the best course of action. Orotracheal intubation would be most appropriate because he lacks a gag reflex."],
-            feedbackOutOfOrder: [""],
+            feedbackOutOfOrder: ["You should have performed orotracheal intubation or inserted an alternative/rescue airway before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
             feedbackErrors: ["Inserting an appropriately sized endotracheal tube (ETT) is the most appropriate method of securing this patient's airway, since he lacks a gag reflex.  An advanced airway would be indicated if the airway cannot be secured with an ET tube due to difficulty intubating the patient.", "Calculate the appropriate size ET tube for a child with the equation age/4 +1. This is the correct size for an uncuffed tube; go down by .5 for a cuffed tube. This child needed a 4.5 cuffed or 5.0 uncuffed tube.  The insertion depth for children is 3cm * (tube size), so about 15cm.", "If using an advanced/rescue airway, reference the Broslow Tape for the acceptable size, but remember that Combitubes are not sized for children."],
             examineIfAbsent: false,
             examineIfErrors: true,
@@ -17370,10 +17587,10 @@ const SC8CP_PhaseIE = {
             subActionsList: false,
             subActions: [{
               id: "intv-orotracheal-intubation",
-              label: "",
+              label: "perform orotracheal intubation",
               type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
               feedbackAbsent: ["Ultimately, this patient should be intubated. This patient has a GCS score of 3; remember, GCS <8, intubate. Since he is unconscious, you need a reliable way to oxygenate and ventilate this patient. While BVM ventilation with an adjunct may be appropriate for a short transport, this near-drowning patient is at increased risk for aspiration, so securing an airway is the best course of action. Orotracheal intubation would be most appropriate because he lacks a gag reflex."],
-              feedbackOutOfOrder: [""],
+              feedbackOutOfOrder: ["You should have performed orotracheal intubation before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
               feedbackErrors: ["Inserting an appropriately sized endotracheal tube (ETT) is the most appropriate method of securing this patient's airway, since he lacks a gag reflex.  An advanced airway would be indicated if the airway cannot be secured with an ET tube due to difficulty intubating the patient.", "Calculate the appropriate size ET tube for a child with the equation age/4 +1. This is the correct size for an uncuffed tube; go down by .5 for a cuffed tube. This child needed a 4.5 cuffed or 5.0 uncuffed tube.  The insertion depth for children is 3cm * (tube size), so about 15cm.", "If using an advanced/rescue airway, reference the Broslow Tape for the acceptable size, but remember that Combitubes are not sized for children."],
               examineIfAbsent: false,
               examineIfErrors: false,
@@ -17387,7 +17604,7 @@ const SC8CP_PhaseIE = {
               type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.ALT,
               alternativeToIntv: "intv-orotracheal-intubation",
               feedbackAbsent: ["Ultimately, this patient should be intubated. This patient has a GCS score of 3; remember, GCS <8, intubate. Since he is unconscious, you need a reliable way to oxygenate and ventilate this patient. While BVM ventilation with an adjunct may be appropriate for a short transport, this near-drowning patient is at increased risk for aspiration, so securing an airway is the best course of action. Orotracheal intubation would be most appropriate because he lacks a gag reflex."],
-              feedbackOutOfOrder: [""],
+              feedbackOutOfOrder: ["You should have inserted an advanced airway before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
               feedbackErrors: ["Inserting an appropriately sized endotracheal tube (ETT) is the most appropriate method of securing this patient's airway, since he lacks a gag reflex.  An advanced airway would be indicated if the airway cannot be secured with an ET tube due to difficulty intubating the patient.", "Calculate the appropriate size ET tube for a child with the equation age/4 +1. This is the correct size for an uncuffed tube; go down by .5 for a cuffed tube. This child needed a 4.5 cuffed or 5.0 uncuffed tube.  The insertion depth for children is 3cm * (tube size), so about 15cm.", "If using an advanced/rescue airway, reference the Broslow Tape for the acceptable size, but remember that Combitubes are not sized for children."],
               examineIfAbsent: false,
               examineIfErrors: false,
@@ -17401,7 +17618,7 @@ const SC8CP_PhaseIE = {
               type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.ALT,
               alternativeToIntv: "intv-nasotracheal-intubation",
               feedbackAbsent: ["Ultimately, this patient should be intubated. This patient has a GCS score of 3; remember, GCS <8, intubate. Since he is unconscious, you need a reliable way to oxygenate and ventilate this patient. While BVM ventilation with an adjunct may be appropriate for a short transport, this near-drowning patient is at increased risk for aspiration, so securing an airway is the best course of action. Orotracheal intubation would be most appropriate because he lacks a gag reflex."],
-              feedbackOutOfOrder: [""],
+              feedbackOutOfOrder: ["You should have performed nasotracheal intubation before starting the secondary survey because all life-threatening conditions should be managed before starting the secondary survey."],
               feedbackErrors: ["Inserting an appropriately sized endotracheal tube (ETT) is the most appropriate method of securing this patient's airway, since he lacks a gag reflex.  An advanced airway would be indicated if the airway cannot be secured with an ET tube due to difficulty intubating the patient.", "Calculate the appropriate size ET tube for a child with the equation age/4 +1. This is the correct size for an uncuffed tube; go down by .5 for a cuffed tube. This child needed a 4.5 cuffed or 5.0 uncuffed tube.  The insertion depth for children is 3cm * (tube size), so about 15cm.", "If using an advanced/rescue airway, reference the Broslow Tape for the acceptable size, but remember that Combitubes are not sized for children."],
               examineIfAbsent: false,
               examineIfErrors: false,
@@ -17659,7 +17876,7 @@ const SC8CP_PhaseIE = {
           label: "ventilating the patient at a rate of 20 BPM, while titrating oxygen at a flow rate of 15 L/min to a target SpO2 >= 90%",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: ["The patient's respiratory rate is 6 with rhonchi appreciable on exam and no SpO2 capture. This patient needs both oxygen and ventilatory support, so O2 via nasal canula or Ventimask would be inadequate."],
-          feedbackOutOfOrder: [""],
+          feedbackOutOfOrder: ["Problems with ventilation and oxygenation are life threatening and should be addressed before you move on to your secondary survey. Repeat your exam and check vitals to ensure your interventions have worked as you expected. If not, your patient may deteriorate as you continue on with your examination."],
           feedbackErrors: ["This patient should have been ventilated at a rate of 20 breaths per minute, which is the recommended rate for a child aged 2-12. When performing BVM ventilation, you use 15LPM O2 in order to both oxygenate and ventilate the patient to a target SpO2 >90%."],
           examineIfAbsent: false,
           examineIfErrors: false,
@@ -17882,7 +18099,7 @@ const SC8CP_PhaseIE = {
           id: "intv-call-for-air-ambulance",
           label: "Call for an air ambulance",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["Given the time required for an air ambulance to arrive, you should call for one as soon after you decide to transport the patient by helicopter as possible, after completing your Primary Survey."],
+          feedbackAbsent: ["This patient requires a pediatric trauma center, due to physiological criteria. Given the time required for an air ambulance to arrive, you should call for one as soon after you decide to transport the patient by helicopter as possible, after completing your Primary Survey."],
           feedbackOutOfOrder: ["Call for an air ambulance before beginning your secondary survey to account for the time it takes for them to arrive."],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -18009,8 +18226,8 @@ const SC8CP_PhaseIE = {
         promptsIfErrors: "",
         subActionsList: true,
         subActions: [{
-          id: "assessment-inspects-skull",
-          label: "Inspect and palpate the scalp and skull",
+          id: "assessment-head-injury",
+          label: "Check head for injury",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
           feedbackAbsent: [""],
           feedbackOutOfOrder: [""],
@@ -18075,7 +18292,7 @@ const SC8CP_PhaseIE = {
           id: "inspects-ears",
           label: "Inspect the ears for blood, other fluids, and bruising (\"battle signs\")",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: ["Although not found in this case, bleeding or CF from the ear may be indicative of a basilar skull fracture. Bruising behind the ear suggests a basilar skull fracture (Battle's sign)."],
+          feedbackAbsent: ["Although not found in this case, bleeding or CF from the ear or bruising behind the ear may be indicative of a basilar skull fracture (Battle's sign)."],
           feedbackOutOfOrder: [""],
           feedbackErrors: [""],
           examineIfAbsent: false,
@@ -18584,7 +18801,7 @@ const SC8CP_PhaseIE = {
           id: "intv-place-directly-on-stretcher",
           label: "Transfer the patient directly to a stretcher",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.REQ,
-          feedbackAbsent: [""],
+          feedbackAbsent: ["How to transfer your patient to the stretcher depends on your level of concern for spinal injury but you should do so with minimal movement to the spine", "Given the low concern for further spinal injury (i.e. the patient was unlikely to have been diving), you could carefully place him directly on the stretcher, with manual c-spine stabilization and a c-collar in place. Alternately, you could use a backboard, scoop stretcher, vacuum mattress, or other device which could be removed after placing the patient on the stretcher.", "Supine position will be required for this patient as he is intubated and in order to properly position the airway."],
           feedbackOutOfOrder: [""],
           feedbackErrors: ["How to transfer your patient to the stretcher depends on your level of concern for spinal injury but you should do so with minimal movement to the spine", "Given the low concern for further spinal injury (i.e. the patient was unlikely to have been diving), you could carefully place him directly on the stretcher, with manual c-spine stabilization and a c-collar in place. Alternately, you could use a backboard, scoop stretcher, vacuum mattress, or other device which could be removed after placing the patient on the stretcher.", "Supine position will be required for this patient as he is intubated and in order to properly position the airway."],
           examineIfAbsent: false,
@@ -18598,7 +18815,7 @@ const SC8CP_PhaseIE = {
           label: "Transfer patient by first placing him on immobilization device",
           type: _constants__WEBPACK_IMPORTED_MODULE_0__.ACTION_TYPES.ALT,
           alternativeToIntv: "intv-place-directly-on-stretcher",
-          feedbackAbsent: [""],
+          feedbackAbsent: ["How to transfer your patient to the stretcher depends on your level of concern for spinal injury but you should do so with minimal movement to the spine", "Given the low concern for further spinal injury (i.e. the patient was unlikely to have been diving), you could carefully place him directly on the stretcher, with manual c-spine stabilization and a c-collar in place. Alternately, you could use a backboard, scoop stretcher, vacuum mattress, or other device which could be removed after placing the patient on the stretcher.", "Supine position will be required for this patient as he is intubated and in order to properly position the airway."],
           feedbackOutOfOrder: [""],
           feedbackErrors: ["How to transfer your patient to the stretcher depends on your level of concern for spinal injury but you should do so with minimal movement to the spine", "Given the low concern for further spinal injury (i.e. the patient was unlikely to have been diving), you could carefully place him directly on the stretcher, with manual c-spine stabilization and a c-collar in place. Alternately, you could use a backboard, scoop stretcher, vacuum mattress, or other device which could be removed after placing the patient on the stretcher.", "Supine position will be required for this patient as he is intubated and in order to properly position the airway."],
           examineIfAbsent: false,
@@ -18888,6 +19105,7 @@ const SC8CP_PhaseIE = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "aggregateLabels": () => (/* binding */ aggregateLabels),
 /* harmony export */   "airAmbulance": () => (/* binding */ airAmbulance),
 /* harmony export */   "airwayAdjunct": () => (/* binding */ airwayAdjunct),
 /* harmony export */   "airwayOpen": () => (/* binding */ airwayOpen),
@@ -18940,10 +19158,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "vitalsToStep": () => (/* binding */ vitalsToStep),
 /* harmony export */   "woundState": () => (/* binding */ woundState)
 /* harmony export */ });
-// defines what set of assessments can comprise an assessment step.  The key is the assessement step and the
+// define KR aggregates: if any in array exist as 2nd args can remove the individuals and call them by the aggregate label
+// only one entry so far because the section definitions suffice for the rest
+const aggregateLabels = {
+  "the primary survey": ["primary-survey"],
+  "the ABCs": ["airway", "breathing", "circulation"],
+  "the secondary survey": ["secondary-assessment", "head", "neck", "chest", "abdomen-pelvis", "assess-pelvis", "extremities", "posterior"]
+}; // defines what set of assessments can comprise an assessment step.  The key is the assessement step and the
 // value is an array of the assessments that can comprise it.  Use this to infer if we can infer the step 
 // should be counted as completed
 // set up with a list of alternative contexts that could occur, any of which would count as allowing the inference
+
 const comprises = {
   "required-action-obtains-vitals": {
     type: "initial vitals",
@@ -19021,6 +19246,7 @@ const globalConstraints = {
   // be combined in the list below, there is an issue with adding in scenario specific conditional constraints
   // that are expressed in a different structure.
   //"": {id: "T", before: [""], beforeOp: "", after: [], afterOp: "", type: "policy"},
+  //just added beforeLabel field and not yet using in the analysis 1/8/23 - PWJ
   // T1
   "scene-size-up": {
     id: "T1",
@@ -19031,213 +19257,79 @@ const globalConstraints = {
     type: "nonLeaf"
   },
   // T2
-  "primary-survey": {
-    id: "T2a",
-    before: ["secondary-assessment"],
+  "abdomen-pelvis": {
+    id: "T2",
+    before: [],
     beforeOp: "",
-    after: [],
-    afterOp: "",
+    after: ["primary-survey", "intv-open-airway-method-head-tilt", "intv-open-airway-method-modified-jaw-thrust", "intv-manual-finger-sweep", "intv-magill-forceps-assisted", "intv-heimlich-maneuver", "intv-back-blows-and-chest-thrusts", "intv-needle-cricothyrotomy", "intv-surgical-cricothyrotomy", "intv-control-severe-bleeding-technique-pack-wound-with-gauze", "intv-position-patient", "intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-2nd-tourniquet", "intv-control-severe-bleeding-technique-tourniquet", "intv-control-severe-bleeding-technique-pressure-bandage", "intv-insert-advanced-airway", "intv-sedation-assisted-intubation", "intv-nasotracheal-intubation", "intv-orotracheal-intubation"],
+    afterOp: "and",
     type: "nonLeaf"
   },
-  //listing the below any intervention that I think are always going to address a life threat
-  "intv-open-airway-method-head-tilt": {
-    id: "T2.1",
-    before: ["secondary-assessment"],
+  "assess-pelvis": {
+    id: "T2",
+    before: [],
     beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
+    after: ["primary-survey", "intv-open-airway-method-head-tilt", "intv-open-airway-method-modified-jaw-thrust", "intv-manual-finger-sweep", "intv-magill-forceps-assisted", "intv-heimlich-maneuver", "intv-back-blows-and-chest-thrusts", "intv-needle-cricothyrotomy", "intv-surgical-cricothyrotomy", "intv-control-severe-bleeding-technique-pack-wound-with-gauze", "intv-position-patient", "intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-2nd-tourniquet", "intv-control-severe-bleeding-technique-tourniquet", "intv-control-severe-bleeding-technique-pressure-bandage", "intv-insert-advanced-airway", "intv-sedation-assisted-intubation", "intv-nasotracheal-intubation", "intv-orotracheal-intubation"],
+    afterOp: "and",
+    type: "nonLeaf"
   },
-  "intv-open-airway-method-jaw-thrust": {
-    id: "T2.2",
-    before: ["secondary-assessment"],
+  "extremities": {
+    id: "T2",
+    before: [],
     beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
+    after: ["primary-survey", "intv-open-airway-method-head-tilt", "intv-open-airway-method-modified-jaw-thrust", "intv-manual-finger-sweep", "intv-magill-forceps-assisted", "intv-heimlich-maneuver", "intv-back-blows-and-chest-thrusts", "intv-needle-cricothyrotomy", "intv-surgical-cricothyrotomy", "intv-control-severe-bleeding-technique-pack-wound-with-gauze", "intv-position-patient", "intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-2nd-tourniquet", "intv-control-severe-bleeding-technique-tourniquet", "intv-control-severe-bleeding-technique-pressure-bandage", "intv-insert-advanced-airway", "intv-sedation-assisted-intubation", "intv-nasotracheal-intubation", "intv-orotracheal-intubation"],
+    afterOp: "and",
+    type: "nonLeaf"
   },
-  // T2.3 see T13 
-  "intv-manual-finger-sweep": {
-    id: "T2.4",
-    before: ["secondary-assessment"],
+  "posterior": {
+    id: "T2",
+    before: [],
     beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-magill-forceps-assisted": {
-    id: "T2.5",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-heimlich-maneuver": {
-    id: "T2.6",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-back-blows-and-chest-thrusts": {
-    id: "T2.7",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  // T2.8 see T28.a
-  // T2.9 see T28.b
-  "intv-needle-cricothyrotomy": {
-    id: "T2.10",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-surgical-cricothyrotomy": {
-    id: "T2.11",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  // T2.12 see T29 
-  // T2.13 see T30
-  // T2.14 see T17
-  "intv-control-severe-bleeding-technique-pack-wound-with-gauze": {
-    id: "T2.15",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-control-severe-bleeding-technique-load-and-go": {
-    id: "T2.16",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-control-shock-technique-place-patient-supine-position": {
-    id: "T2.17",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  //"intv-control-shock-technique-place-patient-supine-position": {id: "T2.18", before: ["secondary-assessment"], beforeOp: "", after: [], afterOp: "", type: "leafI"},
-  // T2.19 see T34
-  // T2.20 see T10
-  "intv-control-severe-bleeding-technique-direct-pressure": {
-    id: "T2.21",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-control-severe-bleeding-technique-2nd-tourniquet": {
-    id: "T2.22",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-control-severe-bleeding-technique-tourniquet": {
-    id: "T2.23",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-control-severe-bleeding-technique-pressure-bandage": {
-    id: "T2.24",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-insert-advanced-airway": {
-    id: "T2.25",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-sedation-assisted-intubation": {
-    id: "T2.26",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-nasotracheal-intubation": {
-    id: "T2.27",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
-  },
-  "intv-orotracheal-intubation": {
-    id: "T2.28",
-    before: ["secondary-assessment"],
-    beforeOp: "",
-    after: [],
-    afterOp: "",
-    type: "leafI"
+    after: ["primary-survey", "intv-open-airway-method-head-tilt", "intv-open-airway-method-modified-jaw-thrust", "intv-manual-finger-sweep", "intv-magill-forceps-assisted", "intv-heimlich-maneuver", "intv-back-blows-and-chest-thrusts", "intv-needle-cricothyrotomy", "intv-surgical-cricothyrotomy", "intv-control-severe-bleeding-technique-pack-wound-with-gauze", "intv-position-patient", "intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-2nd-tourniquet", "intv-control-severe-bleeding-technique-tourniquet", "intv-control-severe-bleeding-technique-pressure-bandage", "intv-insert-advanced-airway", "intv-sedation-assisted-intubation", "intv-nasotracheal-intubation", "intv-orotracheal-intubation"],
+    afterOp: "and",
+    type: "nonLeaf"
   },
   // T3
   "ints-call-for-helicopter": {
-    id: "T3.1",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    id: "T3",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
   },
   "intv-call-for-air-ambulance": {
-    id: "T3.2",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    id: "T3",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
   },
   // T4
-  //"required-action-obtains-vitals": {id: "T4", before: ["secondary-assessment"], beforeOp: "", after: [], afterOp: "", type: "leafA"},
+  //"required-action-obtains-vitals": {id: "T4", before: ["abdomen-pelvis","assess-pelvis","extremities","posterior"], beforeLabel: "secondary assessment", beforeOp: "and", after: [], afterOp: "", type: "leafA"},
   // T5
-  //"required-action-attempt-obtain-sample": {id: "T5", before: ["secondary-assessment"], beforeOp: "", after: [], afterOp: "", type: "leafA"},
+  //"required-action-attempt-obtain-sample": {id: "T5", before: ["abdomen-pelvis","assess-pelvis","extremities","posterior"], beforeLabel: "secondary assessment", beforeOp: "and", after: [], afterOp: "", type: "leafA"},
   // T6 
-  //"required-action-obtain-OPQRST": {id: "T6", before: ["secondary-assessment"], beforeOp: "", after: [], afterOp: "", type: "leafA"},
+  //"required-action-obtain-OPQRST": {id: "T6", before: ["abdomen-pelvis","assess-pelvis","extremities","posterior"], beforeLabel: "secondary assessment", beforeOp: "and", after: [], afterOp: "", type: "leafA"},
   // T7
   "intv-transport": {
     id: "T7",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: ["airway", "breathing", "circulation"],
-    afterOp: "",
+    afterOp: "and",
     type: "leafI"
   },
   // T8
   "exposes-body-parts": {
     id: "T8",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafA"
@@ -19255,6 +19347,7 @@ const globalConstraints = {
   "intv-spinal-immobilization-technique-manual-c-spine": {
     id: "T10-T27",
     before: ["airway", "breathing", "circulation", "intv-spinal-immobilization-technique-cervical-collar"],
+    beforeLabel: "",
     beforeOp: "and",
     after: [],
     afterOp: "",
@@ -19265,27 +19358,29 @@ const globalConstraints = {
   // T13 
   "intv-airway-patency-technique-suction-airway": {
     id: "T13",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
   },
   // T14  deleted
-  //"intv-airway-patency-technique-suction-airway": {id: "14", before: ["intv-oropharyngeal-airway", "intv-nasopharyngeal-airway"], beforeOp: "", after: ["airway"], afterOp: "", type: "leafI"},
+  //"intv-airway-patency-technique-suction-airway": {id: "14", before: ["intv-oropharyngeal-airway", "intv-nasopharyngeal-airway"], beforeLabel: "", beforeOp: "and", after: ["airway"], afterOp: "", type: "leafI"},
   // T15  deleted
 
-  /* "intv-oropharyngeal-airway": {id: "T15a", before: ["intv-nasotracheal-intubation", "intv-orotracheal-intubation", "intv-sedation-assisted-intubation", 
+  /* "intv-oropharyngeal-airway": {id: "T15", before: ["intv-nasotracheal-intubation", "intv-orotracheal-intubation", "intv-sedation-assisted-intubation", 
                                 "intv-rapid-sequence-intubation"], beforeOp: "or", after: [], afterOp: "", type: "leafI"},
-  "intv-nasopharyngeal-airway": {id: "T15b", before: ["intv-nasotracheal-intubation", "intv-orotracheal-intubation", "intv-sedation-assisted-intubation", 
+  "intv-nasopharyngeal-airway": {id: "T15", before: ["intv-nasotracheal-intubation", "intv-orotracheal-intubation", "intv-sedation-assisted-intubation", 
                                 "intv-rapid-sequence-intubation"], beforeOp: "or", after: [], afterOp: "", type: "leafI"},
   */
   // T16 awaiting observer interface implementation decisions on how contacting medical command will be recorded
   // T17
   "intv-ventilation-technique-bag-valve-mask": {
     id: "T17",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
@@ -19295,17 +19390,19 @@ const globalConstraints = {
   // T27 see T10
   // T28
   "intv-oropharyngeal-airway": {
-    id: "T28.1",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    id: "T28",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
   },
   "intv-nasopharyngeal-airway": {
-    id: "T28.2",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    id: "T28",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
@@ -19313,8 +19410,9 @@ const globalConstraints = {
   // T29
   "intv-supplemental-oxygen-device-nasal-cannula": {
     id: "T29",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
@@ -19322,8 +19420,9 @@ const globalConstraints = {
   // T30
   "intv-supplemental-oxygen-device-non-rebreather-mask": {
     id: "T30",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
@@ -19331,19 +19430,13 @@ const globalConstraints = {
   // T34
   "intv-pleural-decompression": {
     id: "T34",
-    before: ["secondary-assessment"],
-    beforeOp: "",
+    before: ["abdomen-pelvis", "assess-pelvis", "extremities", "posterior"],
+    beforeLabel: "secondary assessment",
+    beforeOp: "and",
     after: [],
     afterOp: "",
     type: "leafI"
-  } //used during testing
-  //state that ongoing management plan should go after the entirety of everything listed in after
-  //"ongoing-mgmt-plan": {id: "c2", before: [ ], beforeOp: "", after: ["bsi", "scene-size-up", "primary-survey", "history-taking","secondary-assessment"], afterOp: "and", type: "commonSense"},
-  // have two second args in below because some of Observer logs have one of these ids and some have the other
-  //"assess-injury-mechanism": {id: "c7", before: ["required-action-consider-stabilization-of-spine", "required-action-considers-stabilize-spine"], beforeOp: "or", after: [], afterOp: "", type: "commonSense"},
-  //"intv-control-severe-bleeding-technique-direct-pressure": {id: "c8", before: ["intv-control-severe-bleeding-technique-tourniquet"], beforeOp: "", after: [], afterOp: "", type: "both"},
-  //"intv-control-severe-bleeding-technique-tourniquet": {id: "c9", before: ["intv-control-severe-bleeding-technique-2nd-tourniquet"], beforeOp: "", after: [], afterOp: "", type: "both"},
-
+  }
 }; //constraints that depend on whether certain conditions hold within a scenario
 //based on the scenario and the constraint ids listed under the scenario in
 //scenarioConstraintIDs, the constaints defined here with the ids for the current
@@ -19376,9 +19469,7 @@ const conditionalConstraints = {
     afterOp: "",
     type: "leafA"
   }
-}; //pre-post test problems: M2CA, B7CA, B1CA, M1CA  (need data filled out in order to grade but don't need at time of running experiments w/ students)
-//training problems: B4CA, B5CA, C5CA, SC8CP
-// used to simulate conditional constraints, i.e. we hardcode which conditional constraint ids as
+}; // used to simulate conditional constraints, i.e. we hardcode which conditional constraint ids as
 // defined under conditionalConstraints (above) are relevant to each scenario
 // although one could put global constraint ids under scenarios here, it would be redundant and may cause software
 // issues
@@ -19393,9 +19484,7 @@ const scenarioConstraintIDs = {
   "B1CA": [],
   "M1CA": [],
   "M2CA": ["T12-c1"],
-  "B7CA": [] //"": [],
-  //"": []
-
+  "B7CA": []
 }; //below are examples of interventions in which status should be checked.  The key intvStatusNeeded
 //is true or false.  If true it means should have requested status of this intervention.  If vitals key is
 //not empty then should have checked all of these vitals as well.  Will only check entries after an intervention
@@ -19405,11 +19494,11 @@ const scenarioConstraintIDs = {
 
 const intvChecks = {
   "intv-open-airway-method-head-tilt": {
-    intvStatusNeeded: true,
+    intvStatusNeeded: false,
     vitalsNeeded: []
   },
   "intv-open-airway-method-modified-jaw-thrust": {
-    intvStatusNeeded: true,
+    intvStatusNeeded: false,
     vitalsNeeded: []
   },
   "intv-airway-patency-technique-suction-airway": {
@@ -19554,7 +19643,7 @@ const globalReassessmentKn = {
     vitalLabels: ["BP", "P", "R", "SpO2"],
     requiredVitals: "BP, P, R, and SpO2",
     systems: "breathing",
-    criticalInterventions: "high flow O2 with NRM or assisted BVM ventilation, needle decompression and an occlusive dressing"
+    criticalInterventions: "high flow O2 with NRM or nasal cannula, needle decompression and an occlusive dressing"
   },
   "C5CA": {
     vitalLabels: ["BP", "P", "R", "SpO2"],
@@ -19573,25 +19662,25 @@ const globalReassessmentKn = {
     vitalLabels: ["BP", "P", "R", "SpO2"],
     requiredVitals: "BP, P, R, and SpO2",
     systems: "breathing",
-    criticalInterventions: "NPA, BVM ventilation with high flow O2, tension pneumothorax, and needle decompression"
+    criticalInterventions: "NPA, BVM ventilation with high flow O2, and needle decompression with an occlusive dressing"
   },
   "M1CA": {
     vitalLabels: ["BP", "P", "R", "SpO2", "ETCO2"],
     requiredVitals: "BP, P, R, SpO2 and ETCO2",
     systems: "airway and circulation",
-    criticalInterventions: "occlusive dressing on neck wound, basic airway maneuver, an NPA, intubation, and BVM ventilation with high flow O2"
+    criticalInterventions: "occlusive dressing on neck wound, basic airway maneuver, an NPA, BVM ventilation with high flow O2 and IV fluids en route"
   },
   "M2CA": {
     vitalLabels: ["BP", "P", "R", "SpO2", "ETCO2"],
     requiredVitals: "BP, P, R, SpO2 and ETCO2",
     systems: "airway, breathing and circulation",
-    criticalInterventions: "direct pressure, a tourniquet, basic airway maneuver, intubation, an NPA, BVM ventilation with high flow O2, a large bore IV and IV fluids en route to maintain SBP >= 90"
+    criticalInterventions: "direct pressure, a tourniquet, basic airway maneuver, intubation, an NPA or OPA, BVM ventilation with high flow O2, a large bore IV and IV fluids en route to maintain SBP >= 90"
   },
   "B7CA": {
     vitalLabels: ["BP", "P", "R", "SpO2"],
     requiredVitals: "BP, P, R, and SpO2",
     systems: "breathing",
-    criticalInterventions: "supplemental O2 via NRM, pleural decompression and an occlusive dressing to the entrance wound "
+    criticalInterventions: "supplemental O2 via NRM or nasal cannula, pleural decompression and an occlusive dressing to the entrance wound "
   }
 };
 const globalReassessmentFeedback = {
@@ -19658,14 +19747,14 @@ const criticalInterventions = {
   "B3NA (practice)": [],
   //training scenarios
   B4CA: [["intv-supplemental-oxygen-device-nasal-cannula"], ["intv-supplemental-oxygen-device-non-rebreather-mask"]],
-  B5CA: [["intv-supplemental-oxygen-device-non-rebreather-mask", "intv-occlusive-dressing", "intv-pleural-decompression"]],
-  C5CA: [["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet", "intv-nasopharyngeal-airway", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"]],
-  SC8CP: [["intv-open-airway-method-modified-jaw-thrust", "intv-airway-patency-technique-suction-airway", "intv-oropharyngeal-airway", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"], ["intv-open-airway-method-modified-jaw-thrust", "intv-airway-patency-technique-suction-airway", "intv-nasopharyngeal-airway", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"]],
+  B5CA: [["intv-supplemental-oxygen-device-nasal-cannula", "intv-occlusive-dressing", "intv-pleural-decompression"], ["intv-supplemental-oxygen-device-non-rebreather-mask", "intv-occlusive-dressing", "intv-pleural-decompression"]],
+  C5CA: [["intv-control-severe-bleeding-technique-tourniquet", "intv-nasopharyngeal-airway", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"]],
+  SC8CP: [["intv-airway-patency-technique-suction-airway", "intv-oropharyngeal-airway", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"], ["intv-airway-patency-technique-suction-airway", "intv-oropharyngeal-airway", "intv-nasotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"], ["intv-airway-patency-technique-suction-airway", "intv-oropharyngeal-airway", "intv-insert-advanced-airway", "intv-ventilation-technique-bag-valve-mask"], ["intv-airway-patency-technique-suction-airway", "intv-nasopharyngeal-airway", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"], ["intv-airway-patency-technique-suction-airway", "intv-nasopharyngeal-airway", "intv-nasotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"], ["intv-airway-patency-technique-suction-airway", "intv-nasopharyngeal-airway", "intv-insert-advanced-airway", "intv-ventilation-technique-bag-valve-mask"]],
   //test scenarios
-  B1CA: [["intv-nasopharyngeal-airway", "intv-ventilation-technique-bag-valve-mask", "intv-pleural-decompression"]],
-  M1CA: [["intv-occlusive-dressing", "intv-control-shock-technique-administer-iv-boluses", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask"], ["intv-occlusive-dressing", "intv-control-shock-technique-administer-iv-boluses", "intv-sedated-intubation", "intv-ventilation-technique-bag-valve-mask"]],
-  M2CA: [["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet", "intv-open-airway-method-modified-jaw-thrust", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"], ["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet", "intv-open-airway-method-modified-jaw-thrust", "intv-sedated-intubation", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"]],
-  B7CA: [["intv-supplemental-oxygen-device-non-rebreather-mask", "intv-pleural-decompression", "intv-occlusive-dressing"]]
+  B1CA: [["intv-supplemental-oxygen-device-non-rebreather-mask", "intv-pleural-decompression"]],
+  M1CA: [["intv-occlusive-dressing", "intv-sedation-assisted-intubation", "intv-control-shock-technique-administer-iv-boluses", "intv-ventilation-technique-bag-valve-mask"]],
+  M2CA: [["intv-control-severe-bleeding-technique-tourniquet", "intv-nasopharyngeal-airway", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"], ["intv-control-severe-bleeding-technique-tourniquet", "intv-nasopharyngeal-airway", "intv-nasotracheal-intubation", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"], ["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet", "intv-nasopharyngeal-airway", "intv-insert-advanced-airway", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"], ["intv-control-severe-bleeding-technique-tourniquet", "intv-oropharyngeal-airway", "intv-orotracheal-intubation", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"], ["intv-control-severe-bleeding-technique-tourniquet", "intv-oropharyngeal-airway", "intv-nasotracheal-intubation", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"], ["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet", "intv-oropharyngeal-airway", "intv-insert-advanced-airway", "intv-ventilation-technique-bag-valve-mask", "intv-control-shock-technique-administer-iv-boluses"]],
+  B7CA: [["intv-supplemental-oxygen-device-non-rebreather-mask", "intv-pleural-decompression", "intv-occlusive-dressing"], ["intv-supplemental-oxygen-device-nasal-cannula", "intv-pleural-decompression", "intv-occlusive-dressing"]]
 }; //could create a set of default good values but sounds like will
 //want to customize the descriptive text per scenario (and may not
 //always want the completely good value as an effect)
@@ -19684,7 +19773,7 @@ const criticalInterventions = {
 ], 
 */
 //what assessment findings to update due to interventions
-//rules per table in document Updating.Assessment.Values.in.Response.to.Interventions-9-24
+//rules per table in document Updating.callouts.after.interventions-v4 
 
 const intvStatusRules = {
   //pretrainting scenario
@@ -19780,7 +19869,7 @@ const intvStatusRules = {
       val: "Breaths assisted; spontaneous breaths shallow"
     }]
   }, {
-    ands: ["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet"],
+    ands: ["intv-control-severe-bleeding-technique-tourniquet"],
     updates: [{
       id: "inspects-left-leg-injury",
       tab: ["C"],
@@ -19892,6 +19981,52 @@ const intvStatusRules = {
       val: "Pale, cool"
     }]
   }, {
+    ands: ["intv-open-airway-method-modified-jaw-thrust", "intv-airway-patency-technique-suction-airway", "intv-nasotracheal-intubation", "intv-nasopharyngeal-airway"],
+    updates: [{
+      id: "",
+      tab: ["A"],
+      label: "Patency",
+      val: "Clear and secured"
+    }, {
+      id: "",
+      tab: ["B"],
+      label: "Rate, rhythm, quality",
+      val: "Respirations assisted, gurgling stopped"
+    }, {
+      id: "",
+      tab: ["C"],
+      label: "Pulse",
+      val: "Regular, strong"
+    }, {
+      id: "checks-skin",
+      tab: ["C"],
+      label: "Skin",
+      val: "Pale, cool"
+    }]
+  }, {
+    ands: ["intv-open-airway-method-modified-jaw-thrust", "intv-airway-patency-technique-suction-airway", "intv-nasotracheal-intubation", "intv-oropharyngeal-airway"],
+    updates: [{
+      id: "",
+      tab: ["A"],
+      label: "Patency",
+      val: "Clear and secured"
+    }, {
+      id: "",
+      tab: ["B"],
+      label: "Rate, rhythm, quality",
+      val: "Respirations assisted, gurgling stopped"
+    }, {
+      id: "",
+      tab: ["C"],
+      label: "Pulse",
+      val: "Regular, strong"
+    }, {
+      id: "checks-skin",
+      tab: ["C"],
+      label: "Skin",
+      val: "Pale, cool"
+    }]
+  }, {
     ands: ["intv-orotracheal-intubation"],
     updates: [{
       id: "",
@@ -19921,6 +20056,34 @@ const intvStatusRules = {
     }]
   }, {
     ands: ["intv-nasotracheal-intubation"],
+    updates: [{
+      id: "",
+      tab: ["C"],
+      label: "Pulse",
+      val: "Regular, strong"
+    }, {
+      id: "inspects-right-arm-pulse",
+      tab: [],
+      label: "Pulse",
+      val: "Regular, strong"
+    }, {
+      id: "inspects-left-arm-pulse",
+      tab: [],
+      label: "Pulse",
+      val: "Regular, strong"
+    }, {
+      id: "inspects-right-leg-pulse",
+      tab: [],
+      label: "Pulse",
+      val: "Regular, strong"
+    }, {
+      id: "inspects-left-leg-pulse",
+      tab: [],
+      label: "Pulse",
+      val: "Regular, strong"
+    }]
+  }, {
+    ands: ["intv-insert-advanced-airway"],
     updates: [{
       id: "",
       tab: ["C"],
@@ -19985,7 +20148,7 @@ const intvStatusRules = {
       val: "Less rapid, regular, strong "
     }]
   }, {
-    ands: ["intv-pleural-decompression", "intv-ventilation-technique-bag-valve-mask"],
+    ands: ["intv-pleural-decompression", "intv-supplemental-oxygen-device-non-rebreather-mask"],
     updates: [{
       id: "checks-skin",
       tab: ["C"],
@@ -20075,31 +20238,8 @@ const intvStatusRules = {
       label: "Lung sounds",
       val: "No stridor, LS equal and clear"
     }]
-  }, // added because didn't implement ors and don't want the one below to fire and wipe out the one above
-  {
-    ands: ["intv-sedation-assisted-intubation", "intv-ventilation-technique-bag-valve-mask"],
-    updates: [{
-      id: "assess-loc",
-      tab: ["General"],
-      label: "LOC",
-      val: "Sedated"
-    }, {
-      id: "",
-      tab: ["A"],
-      label: "Patency",
-      val: "Secured with ET tube in place"
-    }, {
-      id: "",
-      tab: ["B"],
-      label: "Rate, rhythm, quality",
-      val: "Assisted breaths"
-    }, {
-      id: "assessment-check-breath-sounds",
-      tab: ["B"],
-      label: "Lung sounds",
-      val: "No stridor, LS equal and clear"
-    }]
   }, {
+    nots: ["intv-sedation-assisted-intubation"],
     ands: ["intv-ventilation-technique-bag-valve-mask"],
     updates: [{
       id: "assess-loc",
@@ -20137,13 +20277,9 @@ const intvStatusRules = {
   //{ands: [], updates: []},
   //{id: "", tab: [""], label: "", val: ""},
   M2CA: [{
-    ands: ["intv-sedation-assisted-intubation"],
-    updates: [{
-      id: "assess-loc",
-      tab: ["General"],
-      label: "LOC",
-      val: "Sedated"
-    }, {
+    ands: ["intv-orotracheal-intubation"],
+    updates: [//{id: "assess-loc", tab: ["General"], label: "LOC", val: "Sedated"},
+    {
       id: "",
       tab: ["B"],
       label: "Rate, rhythm, quality",
@@ -20155,7 +20291,35 @@ const intvStatusRules = {
       val: "Pale, diaphoretic"
     }]
   }, {
-    ands: ["intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet"],
+    ands: ["intv-nasotracheal-intubation"],
+    updates: [//{id: "assess-loc", tab: ["General"], label: "LOC", val: "Sedated"},
+    {
+      id: "",
+      tab: ["B"],
+      label: "Rate, rhythm, quality",
+      val: "Assisted breaths"
+    }, {
+      id: "checks-skin",
+      tab: ["C"],
+      label: "Skin",
+      val: "Pale, diaphoretic"
+    }]
+  }, {
+    ands: ["intv-insert-advanced-airway"],
+    updates: [//{id: "assess-loc", tab: ["General"], label: "LOC", val: "Sedated"},
+    {
+      id: "",
+      tab: ["B"],
+      label: "Rate, rhythm, quality",
+      val: "Assisted breaths"
+    }, {
+      id: "checks-skin",
+      tab: ["C"],
+      label: "Skin",
+      val: "Pale, diaphoretic"
+    }]
+  }, {
+    ands: ["intv-control-severe-bleeding-technique-tourniquet"],
     updates: [{
       id: "assess-major-bleeding",
       tab: ["C"],
@@ -20676,6 +20840,18 @@ const intvResults = Object.freeze({
     M2CA: good,
     B7CA: good
   },
+  "intv-position-patient": {
+    type: patientPositionPlacement,
+    "B3NA (practice)": good,
+    B4CA: good,
+    B5CA: good,
+    C5CA: good,
+    SC8CP: good,
+    B1CA: good,
+    M1CA: good,
+    M2CA: good,
+    B7CA: good
+  },
   "intv-control-shock-technique-place-patient-supine-position": {
     type: patientPositionPlacement,
     "B3NA (practice)": good,
@@ -20941,11 +21117,12 @@ const intvResults = Object.freeze({
     B7CA: neutral
   }
 }); //all below is just for my editing purposes in the above structures
-//commented out ones that I don't impact assessment/status findings
+//commented out ones that don't impact assessment/status findings
 
 const interventions = ["intv-open-airway-method-head-tilt", "intv-open-airway-method-modified-jaw-thrust", "intv-airway-patency-technique-suction-airway", "intv-manual-finger-sweep", "intv-magill-forceps-assisted", "intv-heimlich-maneuver", "intv-back-blows-and-chest-thrusts", "intv-oropharyngeal-airway", "intv-nasopharyngeal-airway", "intv-orotracheal-intubation", "intv-nasotracheal-intubation", //"intv-rapid-sequence-intubation",
 "intv-sedation-assisted-intubation", "intv-needle-cricothyrotomy", "intv-surgical-cricothyrotomy", "intv-supplemental-oxygen-device-nasal-cannula", "intv-supplemental-oxygen-device-non-rebreather-mask", "intv-ventilation-technique-bag-valve-mask", "intv-control-severe-bleeding-technique-direct-pressure", "intv-control-severe-bleeding-technique-tourniquet", "intv-control-severe-bleeding-technique-2nd-tourniquet", "intv-control-severe-bleeding-technique-pack-wound-with-gauze", "intv-control-severe-bleeding-technique-pressure-bandage", //"intv-control-severe-bleeding-technique-load-and-go",
-"intv-control-shock-technique-keep-patient-warm", "intv-control-shock-technique-place-patient-supine-position", "intv-control-shock-technique-administer-iv-boluses", "intv-occlusive-dressing", "intv-pleural-decompression", //"intv-spinal-immobilization-technique-manual-c-spine",
+"intv-control-shock-technique-keep-patient-warm", //"intv-control-shock-technique-place-patient-supine-position",
+"intv-position-patient", "intv-control-shock-technique-administer-iv-boluses", "intv-occlusive-dressing", "intv-pleural-decompression", //"intv-spinal-immobilization-technique-manual-c-spine",
 //"intv-spinal-immobilization-technique-cervical-collar",
 //"intv-spinal-immobilization-technique-attach-cid",
 //"intv-transport",
@@ -21161,6 +21338,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "C5CA_PhaseIE": () => (/* reexport safe */ _C5CA_data_PhaseIE__WEBPACK_IMPORTED_MODULE_7__.C5CA_PhaseIE),
 /* harmony export */   "M2CA_PhaseIE": () => (/* reexport safe */ _Bogus_data_for_testingA__WEBPACK_IMPORTED_MODULE_8__.M2CA_PhaseIE),
 /* harmony export */   "SC8CP_PhaseIE": () => (/* reexport safe */ _SC8CP_data_PhaseIE__WEBPACK_IMPORTED_MODULE_4__.SC8CP_PhaseIE),
+/* harmony export */   "aggregateLabels": () => (/* reexport safe */ _analysisData__WEBPACK_IMPORTED_MODULE_3__.aggregateLabels),
 /* harmony export */   "colorTypes": () => (/* reexport safe */ _c1Data__WEBPACK_IMPORTED_MODULE_1__.colorTypes),
 /* harmony export */   "conditionalConstraints": () => (/* reexport safe */ _analysisData__WEBPACK_IMPORTED_MODULE_3__.conditionalConstraints),
 /* harmony export */   "exceptionDefs": () => (/* reexport safe */ _analysisData__WEBPACK_IMPORTED_MODULE_3__.exceptionDefs),
@@ -24550,7 +24728,7 @@ const PatientStatus = () => {
             active: isActiveTab('general')
           }),
           onClick: () => activateTab('general'),
-          children: "General"
+          children: "LOC"
         }, void 0, false, {
           fileName: _jsxFileName,
           lineNumber: 59,
@@ -27566,27 +27744,51 @@ const ScenarioInfo = () => {
               columnNumber: 29
             }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("li", {
               children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("b", {
-                children: "Position:"
+                children: "Actions:"
               }, void 0, false, {
                 fileName: _jsxFileName,
                 lineNumber: 41,
                 columnNumber: 33
-              }, undefined), " ", scenario.info.patientInformation.position]
+              }, undefined), " ", scenario.info.patientInformation.actions]
             }, void 0, true, {
               fileName: _jsxFileName,
               lineNumber: 41,
               columnNumber: 29
             }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("li", {
               children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("b", {
-                children: "Actions:"
+                children: "Position:"
               }, void 0, false, {
                 fileName: _jsxFileName,
                 lineNumber: 42,
                 columnNumber: 33
-              }, undefined), " ", scenario.info.patientInformation.actions]
+              }, undefined), " ", scenario.info.patientInformation.position]
             }, void 0, true, {
               fileName: _jsxFileName,
               lineNumber: 42,
+              columnNumber: 29
+            }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("li", {
+              children: [/*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("b", {
+                children: "Gender:"
+              }, void 0, false, {
+                fileName: _jsxFileName,
+                lineNumber: 44,
+                columnNumber: 33
+              }, undefined), " ", scenario.info.patientInformation.gender, " \xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("b", {
+                children: "Age:"
+              }, void 0, false, {
+                fileName: _jsxFileName,
+                lineNumber: 45,
+                columnNumber: 33
+              }, undefined), " ", scenario.info.patientInformation.age, " \xA0", /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("b", {
+                children: "Weight:"
+              }, void 0, false, {
+                fileName: _jsxFileName,
+                lineNumber: 46,
+                columnNumber: 33
+              }, undefined), " ", scenario.info.patientInformation.weight]
+            }, void 0, true, {
+              fileName: _jsxFileName,
+              lineNumber: 43,
               columnNumber: 29
             }, undefined)]
           }, void 0, true, {
@@ -27611,18 +27813,18 @@ const ScenarioInfo = () => {
             children: "Dispatch Information"
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 48,
+            lineNumber: 53,
             columnNumber: 25
           }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("p", {
             children: scenario.info.dispatchInfo
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 49,
+            lineNumber: 54,
             columnNumber: 25
           }, undefined)]
         }, void 0, true, {
           fileName: _jsxFileName,
-          lineNumber: 47,
+          lineNumber: 52,
           columnNumber: 21
         }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("div", {
           className: "col-6",
@@ -27630,23 +27832,23 @@ const ScenarioInfo = () => {
             children: "Scene Assessment"
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 52,
+            lineNumber: 57,
             columnNumber: 25
           }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("p", {
             children: scenario.info.sceneAssessment
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 53,
+            lineNumber: 58,
             columnNumber: 25
           }, undefined)]
         }, void 0, true, {
           fileName: _jsxFileName,
-          lineNumber: 51,
+          lineNumber: 56,
           columnNumber: 21
         }, undefined)]
       }, void 0, true, {
         fileName: _jsxFileName,
-        lineNumber: 46,
+        lineNumber: 51,
         columnNumber: 17
       }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("div", {
         className: "row justify-content-md-center",
@@ -27659,35 +27861,35 @@ const ScenarioInfo = () => {
                 children: "Timer"
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 60,
+                lineNumber: 65,
                 columnNumber: 33
               }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("th", {
                 children: "Duration"
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 61,
+                lineNumber: 66,
                 columnNumber: 33
               }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("th", {
                 children: "Time Remaining"
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 62,
+                lineNumber: 67,
                 columnNumber: 33
               }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("th", {
                 children: "Expired"
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 63,
+                lineNumber: 68,
                 columnNumber: 33
               }, undefined)]
             }, void 0, true, {
               fileName: _jsxFileName,
-              lineNumber: 59,
+              lineNumber: 64,
               columnNumber: 29
             }, undefined)
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 58,
+            lineNumber: 63,
             columnNumber: 25
           }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("tbody", {
             children: timers.map(timer => /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("tr", {
@@ -27696,45 +27898,45 @@ const ScenarioInfo = () => {
                 children: timer.id
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 72,
+                lineNumber: 77,
                 columnNumber: 37
               }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("td", {
                 children: (0,_utils__WEBPACK_IMPORTED_MODULE_5__.formatAsMinSecs)(timer.duration)
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 73,
+                lineNumber: 78,
                 columnNumber: 37
               }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("td", {
                 children: (0,_utils__WEBPACK_IMPORTED_MODULE_5__.formatAsMinSecs)(timer.timeRemaining)
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 74,
+                lineNumber: 79,
                 columnNumber: 37
               }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("td", {
                 children: `${timer.expired}`
               }, void 0, false, {
                 fileName: _jsxFileName,
-                lineNumber: 75,
+                lineNumber: 80,
                 columnNumber: 37
               }, undefined)]
             }, timer.id, true, {
               fileName: _jsxFileName,
-              lineNumber: 68,
+              lineNumber: 73,
               columnNumber: 33
             }, undefined))
           }, void 0, false, {
             fileName: _jsxFileName,
-            lineNumber: 66,
+            lineNumber: 71,
             columnNumber: 25
           }, undefined)]
         }, void 0, true, {
           fileName: _jsxFileName,
-          lineNumber: 57,
+          lineNumber: 62,
           columnNumber: 21
         }, undefined)
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 56,
+        lineNumber: 61,
         columnNumber: 17
       }, undefined), /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)("div", {
         className: "row justify-content-md-center",
@@ -27745,7 +27947,7 @@ const ScenarioInfo = () => {
           children: " Start Scenario"
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 83,
+          lineNumber: 88,
           columnNumber: 27
         }, undefined) : /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxDEV)(reactstrap__WEBPACK_IMPORTED_MODULE_8__["default"], {
           color: "success",
@@ -27754,12 +27956,12 @@ const ScenarioInfo = () => {
           children: " Resume Scenario "
         }, void 0, false, {
           fileName: _jsxFileName,
-          lineNumber: 84,
+          lineNumber: 89,
           columnNumber: 27
         }, undefined)
       }, void 0, false, {
         fileName: _jsxFileName,
-        lineNumber: 81,
+        lineNumber: 86,
         columnNumber: 17
       }, undefined)]
     }, void 0, true, {
@@ -28235,7 +28437,7 @@ const GeneralTabContent = () => {
     generalFindings
   } = (0,_contexts_ScenarioContext__WEBPACK_IMPORTED_MODULE_0__.useScenario)();
   return /*#__PURE__*/(0,react_jsx_dev_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxDEV)(_RevealTable__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    title: "General",
+    title: "LOC",
     category: "general",
     headings: ["Assessments", "Current Value"],
     rows: generalFindings
@@ -29114,6 +29316,16 @@ const ScenarioProvider = ({
     return rules;
   };
 
+  const updateFindings = (findings, update) => {
+    let entry = findings.findLast(e => e.label === update.label);
+
+    if (!entry || !!entry && entry.value !== update.value) {
+      findings.push(update);
+    }
+
+    return findings;
+  };
+
   const updateAssessmentStatus = intvData => {
     let rules;
 
@@ -29125,60 +29337,53 @@ const ScenarioProvider = ({
 
     for (let rule of rules) {
       if (!rule.fired) {
-        let ands = rule["ands"];
-        let andResult = intvHistory.concat(intvData).filter(e => ands.includes(e.interventionID));
+        let history = intvHistory.concat(intvData).map(e => e.interventionID);
+        let nots = rule["nots"] || [];
+        let notResult = nots.filter(e => history.includes(e));
+        let ands = rule["ands"] || [];
+        let andResult = ands.filter(e => history.includes(e)); //let andResult = intvHistory.concat(intvData).filter(e => ands.includes(e.interventionID))
+
         let updates = rule["updates"];
 
-        if (updates && (ands.length === 0 || !!andResult && ands.length === andResult.length)) {
+        if (notResult.length === 0 && updates && (ands.length === 0 || !!andResult && ands.length === andResult.length)) {
           rule.fired = true;
 
           for (let update of updates) {
             //Only update an assessment finding in the checklist if it is in
-            // in the secondary assessment section
+            //the secondary assessment section
             let assessment = scenario._checkListMetaData.find(rec => rec.id === update.id);
 
             if (assessment && assessment.phase === "secondary-assessment") {
               scenario.assessmentFindings[update.id] = update.val;
             } //if a tab value is provided, put the update label and val in that tab
+            //if val has changed since the last time
 
 
             if (update.tab && update.tab.length !== 0) {
               let result;
+              let updateVal = {
+                label: update.label,
+                value: update.val
+              };
               update.tab.forEach(tab => {
                 switch (tab) {
                   case "General":
-                    result = generalFindings;
-                    result.push({
-                      label: update.label,
-                      value: update.val
-                    });
+                    result = updateFindings(generalFindings, updateVal);
                     setGeneralFindings(result);
                     break;
 
                   case "A":
-                    result = airwayFindings;
-                    result.push({
-                      label: update.label,
-                      value: update.val
-                    });
+                    result = updateFindings(airwayFindings, updateVal);
                     setAirwayFindings(result);
                     break;
 
                   case "B":
-                    result = breathingFindings;
-                    result.push({
-                      label: update.label,
-                      value: update.val
-                    });
+                    result = updateFindings(breathingFindings, updateVal);
                     setBreathingFindings(result);
                     break;
 
                   case "C":
-                    result = circulationFindings;
-                    result.push({
-                      label: update.label,
-                      value: update.val
-                    });
+                    result = updateFindings(circulationFindings, updateVal);
                     setCirculationFindings(result);
                     break;
 
@@ -29214,7 +29419,7 @@ const ScenarioProvider = ({
     if (!good) {
       let clis = Object.values(checkListItems).filter(rec => !!rec && rec.constructor.name === "Object");
       let actions = clis.concat(patientStatusRequests);
-      let vitalsCount = (0,_meddbriefer_analysis__WEBPACK_IMPORTED_MODULE_14__.doVitalsCounts)(actions, scenario.name);
+      let vitalsCount = (0,_meddbriefer_analysis__WEBPACK_IMPORTED_MODULE_14__.doVitalsCounts)(actions, scenario.name, _meddbriefer_feedback_data_analysisData__WEBPACK_IMPORTED_MODULE_15__.vitalsToStep);
 
       for (const [, count] of Object.entries(vitalsCount)) {
         if (count >= 2) {
@@ -29322,7 +29527,7 @@ const ScenarioProvider = ({
     children: children
   }, void 0, false, {
     fileName: _jsxFileName,
-    lineNumber: 609,
+    lineNumber: 622,
     columnNumber: 9
   }, undefined);
 };
@@ -29852,7 +30057,9 @@ const logicalExprParser = new expressionparser__WEBPACK_IMPORTED_MODULE_0__.Expr
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getAnswerLabel": () => (/* reexport safe */ _prompt_answer_grading__WEBPACK_IMPORTED_MODULE_0__.getAnswerLabel),
 /* harmony export */   "getPrescribedInvAnswers": () => (/* reexport safe */ _prompt_answer_grading__WEBPACK_IMPORTED_MODULE_0__.getPrescribedInvAnswers),
+/* harmony export */   "getPromptLabel": () => (/* reexport safe */ _prompt_answer_grading__WEBPACK_IMPORTED_MODULE_0__.getPromptLabel),
 /* harmony export */   "initializePromptAnswerGrading": () => (/* reexport safe */ _prompt_answer_grading__WEBPACK_IMPORTED_MODULE_0__.initializePromptAnswerGrading),
 /* harmony export */   "processAssessmentAnswers": () => (/* reexport safe */ _prompt_answer_grading__WEBPACK_IMPORTED_MODULE_0__.processAssessmentAnswers),
 /* harmony export */   "processInterventionAnswers": () => (/* reexport safe */ _prompt_answer_grading__WEBPACK_IMPORTED_MODULE_0__.processInterventionAnswers)
@@ -29868,7 +30075,9 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getAnswerLabel": () => (/* binding */ getAnswerLabel),
 /* harmony export */   "getPrescribedInvAnswers": () => (/* binding */ getPrescribedInvAnswers),
+/* harmony export */   "getPromptLabel": () => (/* binding */ getPromptLabel),
 /* harmony export */   "initializePromptAnswerGrading": () => (/* binding */ initializePromptAnswerGrading),
 /* harmony export */   "processAssessmentAnswers": () => (/* binding */ processAssessmentAnswers),
 /* harmony export */   "processInterventionAnswers": () => (/* binding */ processInterventionAnswers)
@@ -29931,7 +30140,6 @@ function getPromptLabel(promptID) {
     return null;
   }
 }
-
 function getPrescribedInvAnswers(interventionID, variantDef) {
   let intvEntry = scenario.interventionVariantAnswers[interventionID];
 
@@ -30103,6 +30311,10 @@ const getAnswerLabel = answerID => {
 const getAnswerLabels = (answerIDs, answerType) => {
   let answerLabel = "";
   let conjText = "";
+
+  if (typeof answerIDs === 'string') {
+    answerIDs = [answerIDs];
+  }
 
   switch (answerType) {
     case "one-or-more":
